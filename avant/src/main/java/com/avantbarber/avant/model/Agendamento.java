@@ -1,0 +1,38 @@
+package com.avantbarber.avant.model;
+
+import java.time.LocalDateTime;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = "agendamento")
+public class Agendamento {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private LocalDateTime data;
+
+    @Column(nullable = false, length = 20)
+    private String status;
+
+    @ManyToOne
+    @JoinColumn(name = "barbeiro_id", nullable = false)
+    private Barbeiro barbeiro;
+
+    @ManyToOne
+    @JoinColumn(name = "cliente_id", nullable = false)
+    private Cliente cliente;
+
+    @ManyToOne
+    @JoinColumn(name = "servico_id", nullable = false)
+    private ServicoDesejado servico;
+    
+}
