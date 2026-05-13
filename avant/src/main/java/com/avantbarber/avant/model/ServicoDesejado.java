@@ -16,11 +16,11 @@ public class ServicoDesejado {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
     @Column(length = 80, nullable = false,  unique = true)
     private String nome;
 
     @Column(length = 80, nullable = false)
-    private double preco;
+    private Double preco;
 }
