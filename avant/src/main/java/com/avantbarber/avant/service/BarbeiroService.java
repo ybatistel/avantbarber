@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.avantbarber.avant.dto.BarbeiroDTO;
+import com.avantbarber.avant.dto.BarbeiroRequestDTO;
 import com.avantbarber.avant.model.Barbeiro;
 import com.avantbarber.avant.repository.BarbeiroRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,24 +16,57 @@ public class BarbeiroService {
 
     private final BarbeiroRepository barbeiroRepository;
 
-    public List<Barbeiro> listarBarbeiros() {
-        return barbeiroRepository.findAll();
+    public List<BarbeiroDTO> listarBarbeiros() {
+        return barbeiroRepository.findAll().stream()
+                .map(this::toDTO)
+                .toList();
     }
-    
-    public Barbeiro buscarPorId(Long id) {
+
+    private BarbeiroDTO toDTO(Barbeiro barbeiro) {
+        return new BarbeiroDTO(
+                barbeiro.getId(),
+                barbeiro.getNome(),
+                barbeiro.getNumero(),
+                barbeiro.getCpf(),
+                barbeiro.getPerfil());
+    }
+
+    private Barbeiro toEntity(BarbeiroRequestDTO barbeiroRequestDTO) {
+        Barbeiro barbeiro = new Barbeiro();
+        barbeiro.setNome(barbeiroRequestDTO.getNome());
+        barbeiro.setNumero(barbeiroRequestDTO.getNumero());
+        barbeiro.setCpf(barbeiroRequestDTO.getCpf());
+        barbeiro.setSenha(barbeiroRequestDTO.getSenha());
+        barbeiro.setPerfil(barbeiroRequestDTO.getPerfil());
+        return barbeiro;
+    }
+
+    public BarbeiroDTO buscarPorId(Long id) {
         return barbeiroRepository.findById(id)
+                .map(this::toDTO)
                 .orElseThrow(() -> new RuntimeException("Barbeiro não encontrado com o ID: " + id));
     }
-    public Barbeiro salvar(Barbeiro barbeiro) {
-        return barbeiroRepository.save(barbeiro);
+
+    public BarbeiroDTO salvar(BarbeiroRequestDTO barbeiroRequestDTO) {
+        Barbeiro barbeiro = toEntity(barbeiroRequestDTO);
+        Barbeiro savedBarbeiro = barbeiroRepository.save(barbeiro);
+        return toDTO(savedBarbeiro);
     }
-    public Barbeiro atualizar(Long id, Barbeiro barbeiro) {
-        Barbeiro barbeiroExistente = barbeiroRepository.findById(id)
+   
+    public BarbeiroDTO atualizar(Long id, BarbeiroRequestDTO barbeiroRequestDTO) {
+        Barbeiro barbeiro = barbeiroRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Barbeiro não encontrado com o ID: " + id));
-        barbeiroExistente.setNome(barbeiro.getNome());
-        return barbeiroRepository.save(barbeiroExistente);
+        barbeiro.setNome(barbeiroRequestDTO.getNome());
+        barbeiro.setNumero(barbeiroRequestDTO.getNumero());
+        barbeiro.setCpf(barbeiroRequestDTO.getCpf());
+        barbeiro.setSenha(barbeiroRequestDTO.getSenha());
+        barbeiro.setPerfil(barbeiroRequestDTO.getPerfil());
+        Barbeiro updatedBarbeiro = barbeiroRepository.save(barbeiro);
+        return toDTO(updatedBarbeiro);
     }
+
     public void deletar(Long id) {
         barbeiroRepository.deleteById(id);
     }
+   
 }
