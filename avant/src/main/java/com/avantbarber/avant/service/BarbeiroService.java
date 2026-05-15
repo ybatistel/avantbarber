@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.avantbarber.avant.dto.BarbeiroDTO;
 import com.avantbarber.avant.dto.BarbeiroRequestDTO;
+import com.avantbarber.avant.exception.RecursoNaoEncontradoException;
 import com.avantbarber.avant.model.Barbeiro;
 import com.avantbarber.avant.repository.BarbeiroRepository;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +45,7 @@ public class BarbeiroService {
     public BarbeiroDTO buscarPorId(Long id) {
         return barbeiroRepository.findById(id)
                 .map(this::toDTO)
-                .orElseThrow(() -> new RuntimeException("Barbeiro não encontrado com o ID: " + id));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Barbeiro não encontrado com o ID: " + id));
     }
 
     public BarbeiroDTO salvar(BarbeiroRequestDTO barbeiroRequestDTO) {
@@ -55,7 +56,7 @@ public class BarbeiroService {
    
     public BarbeiroDTO atualizar(Long id, BarbeiroRequestDTO barbeiroRequestDTO) {
         Barbeiro barbeiro = barbeiroRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Barbeiro não encontrado com o ID: " + id));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Barbeiro não encontrado com o ID: " + id));
         barbeiro.setNome(barbeiroRequestDTO.getNome());
         barbeiro.setNumero(barbeiroRequestDTO.getNumero());
         barbeiro.setCpf(barbeiroRequestDTO.getCpf());

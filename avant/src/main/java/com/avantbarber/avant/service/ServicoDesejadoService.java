@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.avantbarber.avant.dto.ServicoDesejadoDTO;
+import com.avantbarber.avant.exception.RecursoNaoEncontradoException;
 import com.avantbarber.avant.model.ServicoDesejado;
 import com.avantbarber.avant.repository.ServicoDesejadoRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,7 @@ public class ServicoDesejadoService {
                         servico.getNome(),
                         servico.getPreco()
                 ))
-                .orElseThrow(() -> new RuntimeException("Serviço não encontrado com o ID: " + id));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado com o ID: " + id));
     }
 
     public ServicoDesejadoDTO salvar(ServicoDesejadoDTO servicoDesejadoDTO) {
@@ -45,7 +46,7 @@ public class ServicoDesejadoService {
 
     public ServicoDesejadoDTO atualizar(Long id, ServicoDesejadoDTO servicoDesejadoDTO) {
         ServicoDesejado servicoDesejado = servicoDesejadoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Serviço não encontrado com o ID: " + id));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado com o ID: " + id));
         servicoDesejado.setNome(servicoDesejadoDTO.getNome());
         servicoDesejado.setPreco(servicoDesejadoDTO.getPreco());
         ServicoDesejado updatedServicoDesejado = servicoDesejadoRepository.save(servicoDesejado);
