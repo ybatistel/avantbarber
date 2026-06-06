@@ -21,7 +21,7 @@ public class Agendamento {
     private LocalDateTime data;
 
     @Column(nullable = false, length = 20)
-    private String status;
+    private String status = "Pendente";
 
     @ManyToOne
     @JoinColumn(name = "barbeiro_id", nullable = false)
