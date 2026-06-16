@@ -1,6 +1,8 @@
 package com.avantbarber.avant.model;
 
 
+import jakarta.validation.constraints.NotBlank;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,9 +27,10 @@ public class Barbeiro {
 
     @Column(length = 14, nullable = false, unique = true)
     private String cpf;
-
+    
+    @NotBlank(message = "A senha é obrigatória")
     @Column(nullable = false, length = 255)
-    private String senha;
+    private String senha; 
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

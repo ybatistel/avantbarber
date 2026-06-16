@@ -1,5 +1,7 @@
 package com.avantbarber.avant.dto;
 
+import jakarta.validation.constraints.NotBlank;
+
 import com.avantbarber.avant.model.Perfil;
 
 import lombok.AllArgsConstructor;
