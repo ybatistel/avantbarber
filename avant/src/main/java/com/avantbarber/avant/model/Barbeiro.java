@@ -28,7 +28,6 @@ public class Barbeiro {
     @Column(length = 14, nullable = false, unique = true)
     private String cpf;
     
-    @NotBlank(message = "A senha é obrigatória")
     @Column(nullable = false, length = 255)
     private String senha; 
 

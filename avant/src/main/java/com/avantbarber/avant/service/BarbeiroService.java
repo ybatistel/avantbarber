@@ -2,6 +2,7 @@ package com.avantbarber.avant.service;
 
 import java.util.List;
 
+import com.avantbarber.avant.exception.ChaveDuplicadaException;
 import org.springframework.stereotype.Service;
 
 import com.avantbarber.avant.dto.BarbeiroDTO;
@@ -50,6 +51,9 @@ public class BarbeiroService {
 
     public BarbeiroDTO salvar(BarbeiroRequestDTO barbeiroRequestDTO) {
         Barbeiro barbeiro = toEntity(barbeiroRequestDTO);
+        if (barbeiroRepository.findByCpf(barbeiro.getCpf()).isPresent()) {
+            throw new ChaveDuplicadaException("Erro: Já existe um barbeiro com CPF informado!");
+        }
         Barbeiro savedBarbeiro = barbeiroRepository.save(barbeiro);
         return toDTO(savedBarbeiro);
     }

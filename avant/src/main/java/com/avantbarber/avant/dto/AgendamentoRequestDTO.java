@@ -16,7 +16,4 @@ public class AgendamentoRequestDTO {
     private LocalDateTime dataHora;
     private String status;
 
-    public Long getId() {
-        return null;
-    }
 }

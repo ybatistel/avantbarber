@@ -7,6 +7,4 @@ import java.util.List;
 
 public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> {
     List<Agendamento> id(Long id);
-
-
 }

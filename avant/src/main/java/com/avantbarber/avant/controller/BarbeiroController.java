@@ -9,6 +9,7 @@ import com.avantbarber.avant.dto.BarbeiroDTO;
 import com.avantbarber.avant.dto.BarbeiroRequestDTO;
 import com.avantbarber.avant.service.BarbeiroService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -29,7 +30,7 @@ public class BarbeiroController {
     }
 
     @PostMapping
-    public ResponseEntity<BarbeiroDTO> salvar(@RequestBody BarbeiroRequestDTO barbeiroRequestDTO) {
+    public ResponseEntity<BarbeiroDTO> salvar(@Valid @RequestBody BarbeiroRequestDTO barbeiroRequestDTO) {
         return ResponseEntity.ok(barbeiroService.salvar(barbeiroRequestDTO));
     }
 
@@ -45,3 +46,4 @@ public class BarbeiroController {
         return ResponseEntity.noContent().build();
     }
 }
+    

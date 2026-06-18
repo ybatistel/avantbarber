@@ -9,7 +9,5 @@ import com.avantbarber.avant.model.Cliente;
 
 @Repository
 public interface ClienteRepository extends JpaRepository<Cliente, Long> {
-
     Optional<Cliente> findByCpf(String cpf);
-
 }

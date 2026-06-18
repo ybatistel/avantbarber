@@ -11,6 +11,7 @@ import com.avantbarber.avant.repository.ServicoDesejadoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -62,5 +63,21 @@ public class AgendamentoService {
         return agendamentoRepository.findById(id)
                 .map(this::toDTO)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento não encontrado com o ID: " + id));
+    }
+
+    public AgendamentoDTO salvar(AgendamentoRequestDTO agendamentoRequestDTO) {
+        Agendamento agendamento = toEntity(agendamentoRequestDTO);
+        validarDataRetroativa(agendamento.getData());
+        validarHorarioFuncionamento(agendamento.getData());
+        validarDisponibilidadeBarbeiro(agendamento.getBarbeiro().getId(),agendamento.getData());
+        validarDisponibilidadeCliente(agendamento.getCliente().getId(),agendamento.getData());
+        agendamento.setStatus(StatusAgendamento.PENDENTE);
+        return toDTO(agendamentoRepository.save(agendamento));
+    }
+
+    private void validarDataRetroativa(LocalDateTime dataAgendamento) {
+        if (dataAgendamento.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException ("Erro: Não é possível realizar um agendamento no passado!");
+        }
     }
 }
