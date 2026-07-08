@@ -1,0 +1,6 @@
+$kind: http-request
+name: Listar Servicos Desejados
+method: GET
+url: '{{baseUrl}}/servicos-desejados'
+order: 1000
+description: Lista todos os serviços desejados cadastrados

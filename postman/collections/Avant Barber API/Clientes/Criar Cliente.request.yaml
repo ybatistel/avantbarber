@@ -1,0 +1,19 @@
+$kind: http-request
+name: Criar Cliente
+method: POST
+url: '{{baseUrl}}/clientes'
+order: 3000
+description: Cria um novo cliente
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nome": "Maria Souza",
+      "numero": "11988888888",
+      "cpf": "987.654.321-00",
+      "senha": "senha456",
+      "endereco": "Rua das Flores, 123"
+    }

@@ -1,0 +1,19 @@
+$kind: http-request
+name: Atualizar Cliente
+method: PUT
+url: '{{baseUrl}}/clientes/{{clienteId}}'
+order: 4000
+description: Atualiza os dados de um cliente existente
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nome": "Maria Souza",
+      "numero": "11988888888",
+      "cpf": "987.654.321-00",
+      "senha": "senha456",
+      "endereco": "Rua das Flores, 123"
+    }

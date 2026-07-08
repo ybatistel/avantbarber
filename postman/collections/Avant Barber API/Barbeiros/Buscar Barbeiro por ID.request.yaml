@@ -1,0 +1,6 @@
+$kind: http-request
+name: Buscar Barbeiro por ID
+method: GET
+url: '{{baseUrl}}/barbeiros/{{barbeiroId}}'
+order: 2000
+description: Busca um barbeiro pelo seu ID

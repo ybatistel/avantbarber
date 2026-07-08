@@ -1,0 +1,6 @@
+$kind: http-request
+name: Deletar Barbeiro
+method: DELETE
+url: '{{baseUrl}}/barbeiros/{{barbeiroId}}'
+order: 5000
+description: Remove um barbeiro pelo seu ID
