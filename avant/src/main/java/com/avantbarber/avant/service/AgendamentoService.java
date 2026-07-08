@@ -74,7 +74,7 @@ public class AgendamentoService {
         //agendamento.setStatus(StatusAgendamento.PENDENTE);
         return toDTO(agendamentoRepository.save(agendamento));
     }
-
+// testando apenas, novamente testando apenas
     private void validarDataRetroativa(LocalDateTime dataAgendamento) {
         if (dataAgendamento.isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException ("Erro: Não é possível realizar um agendamento no passado!");
