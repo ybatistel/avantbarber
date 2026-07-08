@@ -68,10 +68,10 @@ public class AgendamentoService {
     public AgendamentoDTO salvar(AgendamentoRequestDTO agendamentoRequestDTO) {
         Agendamento agendamento = toEntity(agendamentoRequestDTO);
         validarDataRetroativa(agendamento.getData());
-        validarHorarioFuncionamento(agendamento.getData());
-        validarDisponibilidadeBarbeiro(agendamento.getBarbeiro().getId(),agendamento.getData());
-        validarDisponibilidadeCliente(agendamento.getCliente().getId(),agendamento.getData());
-        agendamento.setStatus(StatusAgendamento.PENDENTE);
+        //validarHorarioFuncionamento(agendamento.getData());
+      // validarDisponibilidadeBarbeiro(agendamento.getBarbeiro().getId(),agendamento.getData());
+      //  validarDisponibilidadeCliente(agendamento.getCliente().getId(),agendamento.getData());
+        //agendamento.setStatus(StatusAgendamento.PENDENTE);
         return toDTO(agendamentoRepository.save(agendamento));
     }
 

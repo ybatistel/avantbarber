@@ -1,0 +1,6 @@
+$kind: http-request
+name: Buscar Servico Desejado por ID
+method: GET
+url: '{{baseUrl}}/servicos-desejados/{{servicoId}}'
+order: 2000
+description: Busca um serviço desejado pelo seu ID

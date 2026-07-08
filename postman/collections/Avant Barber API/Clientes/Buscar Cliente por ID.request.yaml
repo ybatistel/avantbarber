@@ -1,0 +1,6 @@
+$kind: http-request
+name: Buscar Cliente por ID
+method: GET
+url: '{{baseUrl}}/clientes/{{clienteId}}'
+order: 2000
+description: Busca um cliente pelo seu ID

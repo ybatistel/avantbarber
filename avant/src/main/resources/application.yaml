@@ -12,3 +12,18 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ***REMOVIDO***
+
+  spring:
+    security:
+      oauth2:
+        client:
+          registration:
+            google:
+              client-secret: ***REMOVIDO***
