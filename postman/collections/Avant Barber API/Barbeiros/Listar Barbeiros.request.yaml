@@ -1,0 +1,6 @@
+$kind: http-request
+name: Listar Barbeiros
+method: GET
+url: '{{baseUrl}}/barbeiros'
+order: 1000
+description: Lista todos os barbeiros cadastrados

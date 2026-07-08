@@ -1,0 +1,6 @@
+$kind: http-request
+name: Deletar Cliente
+method: DELETE
+url: '{{baseUrl}}/clientes/{{clienteId}}'
+order: 5000
+description: Remove um cliente pelo seu ID

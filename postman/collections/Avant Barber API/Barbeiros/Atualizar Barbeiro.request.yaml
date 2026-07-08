@@ -1,0 +1,19 @@
+$kind: http-request
+name: Atualizar Barbeiro
+method: PUT
+url: '{{baseUrl}}/barbeiros/{{barbeiroId}}'
+order: 4000
+description: Atualiza os dados de um barbeiro existente
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nome": "João Silva",
+      "numero": "11999999999",
+      "cpf": "123.456.789-00",
+      "senha": "senha123",
+      "perfil": "BARBEIRO"
+    }

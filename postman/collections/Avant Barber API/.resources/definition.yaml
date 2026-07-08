@@ -1,0 +1,6 @@
+$kind: collection
+name: Avant Barber API
+description: API para gerenciamento da barbearia Avant - Barbeiros, Clientes e Serviços Desejados
+variables:
+  - key: baseUrl
+    value: 'http://localhost:8080'
