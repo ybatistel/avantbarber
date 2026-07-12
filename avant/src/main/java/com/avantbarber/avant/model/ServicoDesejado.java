@@ -1,6 +1,7 @@
 package com.avantbarber.avant.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,5 +23,5 @@ public class ServicoDesejado {
     private String nome;
 
     @Column(length = 80, nullable = false)
-    private Double preco;
+    private BigDecimal preco;
 }

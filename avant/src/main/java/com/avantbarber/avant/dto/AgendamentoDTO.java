@@ -1,5 +1,6 @@
 package com.avantbarber.avant.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import com.avantbarber.avant.model.Agendamento;
@@ -18,7 +19,7 @@ public class AgendamentoDTO {
     private String nomeBarbeiro;
     private String nomeCliente;
     private String nomeServico;
-    private Double precoServico;
+    private BigDecimal precoServico;
     private String cpfCliente;
     private LocalDateTime dataHora;
     private String status;
