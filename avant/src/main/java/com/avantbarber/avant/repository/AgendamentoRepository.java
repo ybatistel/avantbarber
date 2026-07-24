@@ -3,8 +3,11 @@ package com.avantbarber.avant.repository;
 import com.avantbarber.avant.model.Agendamento;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> {
-    List<Agendamento> id(Long id);
+    Optional<Agendamento> findById (Long id);
+
+    boolean existsByBarbeiroIdAndData(Long barbeiroId, LocalDateTime data);
 }

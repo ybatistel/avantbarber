@@ -29,7 +29,7 @@ public class ServicoDesejadoController {
     }
 
     @GetMapping("/{id}")
-    public ServicoDesejadoDTO buscarPorId(@PathVariable Long id) {
+    public ServicoDesejadoDTO buscawrPorId(@PathVariable Long id) {
         return servicoDesejadoService.buscarPorId(id);
     }
 
