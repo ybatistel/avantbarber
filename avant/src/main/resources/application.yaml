@@ -18,11 +18,4 @@ spring:
         registration:
           google:
             client-id: ***REMOVIDO***
-
-  spring:
-    security:
-      oauth2:
-        client:
-          registration:
-            google:
-              client-secret: ***REMOVIDO***
+            client-secret: ***REMOVIDO***
