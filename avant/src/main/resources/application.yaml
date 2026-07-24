@@ -18,11 +18,4 @@ spring:
         registration:
           google:
             client-id: 643979081631-ehumuvopjjnp7fvpre49dugnlum1dnl0.apps.googleusercontent.com
-
-  spring:
-    security:
-      oauth2:
-        client:
-          registration:
-            google:
-              client-secret: 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
+            client-secret: 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
