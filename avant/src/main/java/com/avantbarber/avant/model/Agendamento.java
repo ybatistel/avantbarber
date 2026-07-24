@@ -21,7 +21,8 @@ public class Agendamento {
     private LocalDateTime data;
 
     @Column(nullable = false, length = 20)
-    private String status = "Pendente";
+    @Enumerated(EnumType.STRING)
+    private StatusAgendamento status;
 
     @ManyToOne
     @JoinColumn(name = "barbeiro_id", nullable = false)
