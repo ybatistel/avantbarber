@@ -36,3 +36,9 @@ jobs:
 
     - name: Compilar e testar com Maven
       run: mvn -B package --file avant/pom.xml
+      env:
+        DB_URL: jdbc:postgresql://localhost:5432/avant_barbearia
+        DB_USERNAME: postgres
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
