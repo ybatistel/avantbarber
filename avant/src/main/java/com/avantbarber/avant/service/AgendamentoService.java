@@ -2,6 +2,7 @@ package com.avantbarber.avant.service;
 
 import com.avantbarber.avant.dto.AgendamentoDTO;
 import com.avantbarber.avant.dto.AgendamentoRequestDTO;
+import com.avantbarber.avant.exception.BusinessException;
 import com.avantbarber.avant.exception.HorarioFuncionamentoException;
 import com.avantbarber.avant.exception.RecursoNaoEncontradoException;
 import com.avantbarber.avant.model.Agendamento;
@@ -10,7 +11,9 @@ import com.avantbarber.avant.repository.AgendamentoRepository;
 import com.avantbarber.avant.repository.BarbeiroRepository;
 import com.avantbarber.avant.repository.ClienteRepository;
 import com.avantbarber.avant.repository.ServicoDesejadoRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -71,6 +74,7 @@ public class AgendamentoService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento não encontrado com o ID: " + id));
     }
 
+    @Transactional
     public AgendamentoDTO salvar(AgendamentoRequestDTO agendamentoRequestDTO) {
         Agendamento agendamento = toEntity(agendamentoRequestDTO);
         validarDataRetroativa(agendamento.getData());
@@ -80,10 +84,10 @@ public class AgendamentoService {
         agendamento.setStatus(StatusAgendamento.PENDENTE);
         return toDTO(agendamentoRepository.save(agendamento));
     }
-    // testando apenas, novamente testando apenas
+
     private void validarDataRetroativa(LocalDateTime dataAgendamento) {
         if (dataAgendamento.isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException ("Erro: Não é possível realizar um agendamento no passado!");
+            throw new BusinessException("Erro: Não é possível realizar um agendamento no passado!");
         }
     }
 
@@ -116,16 +120,23 @@ public class AgendamentoService {
 
     private void validarDisponibilidadeBarbeiro(Long barbeiroId, LocalDateTime dataAgendamento) {
         if (agendamentoRepository.existsByBarbeiroIdAndData(barbeiroId, dataAgendamento)) {
-            throw new IllegalArgumentException("Erro: O barbeiro já possui um agendamento nesse horário!");
+            throw new BusinessException("Erro: O barbeiro já possui um agendamento nesse horário!");
         }
     }
 
     private void validarDisponibilidadeCliente(Long clienteId, LocalDateTime dataAgendamento) {
         if (agendamentoRepository.existsByClienteIdAndData(clienteId, dataAgendamento)) {
-            throw new IllegalArgumentException("Erro: O cliente já possui um agendamento nesse horário!");
+            throw new BusinessException("Erro: O cliente já possui um agendamento nesse horário!");
         }
     }
 
+    private void validarDisponibilidadeHorarios(Long barbeiroId, LocalDateTime dataAgendamento, Long servicoId) {
+        if (agendamentoRepository.existsByData(dataAgendamento)) {
+            throw new BusinessException("Erro: Já existe um agendamento nesse horário!");
+        }
+    }
+
+    @Transactional
     public AgendamentoDTO cancelar(Long id) {
         Agendamento agendamento = agendamentoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento não encontrado com o ID: " + id));
@@ -133,6 +144,7 @@ public class AgendamentoService {
         return toDTO(agendamentoRepository.save(agendamento));
     }
 
+    @Transactional
     public AgendamentoDTO reagendar(Long id, LocalDateTime novaDataAgendamento) {
         Agendamento reagendar = agendamentoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento não encontrado com o ID: " + id));
