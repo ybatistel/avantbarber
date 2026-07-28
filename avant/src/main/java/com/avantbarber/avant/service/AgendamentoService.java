@@ -17,10 +17,10 @@ import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -29,10 +29,10 @@ public class AgendamentoService {
     private final AgendamentoRepository agendamentoRepository;
     private final ClienteRepository clienteRepository;
     private final BarbeiroRepository barbeiroRepository;
-    private final ServicoDesejadoRepository  servicoDesejadoRepository;
+    private final ServicoDesejadoRepository servicoDesejadoRepository;
 
 
-    public List<AgendamentoDTO> listarAgendamentos(){
+    public List<AgendamentoDTO> listarAgendamentos() {
         return agendamentoRepository.findAll().stream()
                 .map(this::toDTO)
                 .toList();
@@ -79,8 +79,8 @@ public class AgendamentoService {
         Agendamento agendamento = toEntity(agendamentoRequestDTO);
         validarDataRetroativa(agendamento.getData());
         validarHorarioFuncionamento(agendamento.getData());
-        validarDisponibilidadeBarbeiro(agendamento.getBarbeiro().getId(),agendamento.getData());
-        validarDisponibilidadeCliente(agendamento.getCliente().getId(),agendamento.getData());
+        validarDisponibilidadeBarbeiro(agendamento.getBarbeiro().getId(), agendamento.getData());
+        validarDisponibilidadeCliente(agendamento.getCliente().getId(), agendamento.getData());
         agendamento.setStatus(StatusAgendamento.PENDENTE);
         return toDTO(agendamentoRepository.save(agendamento));
     }
@@ -96,7 +96,8 @@ public class AgendamentoService {
         DayOfWeek diaSemana = dataAgendamento.getDayOfWeek();
 
         switch (diaSemana) {
-            case SATURDAY -> throw new HorarioFuncionamentoException("Erro: Não é possível realizar agendamentos aos sábados!");
+            case SATURDAY ->
+                    throw new HorarioFuncionamentoException("Erro: Não é possível realizar agendamentos aos sábados!");
 
             case SUNDAY -> {
                 if (horaAgendamento.isBefore(LocalTime.of(9, 0)) || horaAgendamento.isAfter(LocalTime.of(14, 0))) {
@@ -105,13 +106,13 @@ public class AgendamentoService {
             }
 
             case MONDAY -> {
-                if (horaAgendamento.isBefore(LocalTime.of(13,30)) || horaAgendamento.isAfter(LocalTime.of(19,0))) {
+                if (horaAgendamento.isBefore(LocalTime.of(13, 30)) || horaAgendamento.isAfter(LocalTime.of(19, 0))) {
                     throw new HorarioFuncionamentoException("Erro: Não é possível realizar agendamentos às segundas-feiras fora do horário de funcionamento (13h30 às 19h)!");
                 }
             }
 
-            case TUESDAY, WEDNESDAY,  THURSDAY, FRIDAY -> {
-                if (horaAgendamento.isBefore(LocalTime.of(10,0)) || horaAgendamento.isAfter(LocalTime.of(19,0))) {
+            case TUESDAY, WEDNESDAY, THURSDAY, FRIDAY -> {
+                if (horaAgendamento.isBefore(LocalTime.of(10, 0)) || horaAgendamento.isAfter(LocalTime.of(19, 0))) {
                     throw new HorarioFuncionamentoException("Erro: Não é possível realizar agendamentos de terça a sexta fora do horário de funcionamento (10h às 19h)!");
                 }
             }
@@ -156,5 +157,62 @@ public class AgendamentoService {
         reagendar.setStatus(StatusAgendamento.PENDENTE);
         return toDTO(agendamentoRepository.save(reagendar));
     }
-}
 
+    public List<LocalTime> listarHorariosDisponiveis(Long barbeiroId, LocalDate dataAgendamento) {
+
+        // valida barbeiro
+        if (!barbeiroRepository.existsById(barbeiroId)) {
+            throw new RecursoNaoEncontradoException("Barbeiro não encontrado com o ID: " + barbeiroId);
+        }
+
+        // define abertura e fechamento da barbearia com base no dia da semana
+        DayOfWeek dia = dataAgendamento.getDayOfWeek();
+        if (dia == DayOfWeek.SATURDAY) {
+            return Collections.emptyList();
+        }
+
+        LocalTime inicioDia;
+        LocalTime fimDia;
+
+        switch (dia) {
+            case SUNDAY -> {
+                inicioDia = LocalTime.of(9, 0);
+                fimDia = LocalTime.of(14, 0);
+            }
+            case MONDAY -> {
+                inicioDia = LocalTime.of(13, 30);
+                fimDia = LocalTime.of(19, 0);
+            }
+            default -> {
+                inicioDia = LocalTime.of(10, 0);
+                fimDia = LocalTime.of(19, 0);
+            }
+        }
+
+        // Busca o que já está ocupado no banco
+        LocalDateTime dataInicio = dataAgendamento.atStartOfDay();
+        LocalDateTime dataFim = dataAgendamento.atTime(LocalTime.MAX);
+
+        List<Agendamento> agendamentosOcupados = agendamentoRepository
+                .findByBarbeiroIdAndDataBetweenAndStatusNot(barbeiroId, dataInicio, dataFim, StatusAgendamento.CANCELADO);
+
+        List<LocalTime> horasOcupadas = agendamentosOcupados.stream()
+                .map(agendamento -> agendamento.getData().toLocalTime())
+                .toList();
+
+        // Monta a lista de horários livres de 30 em 30 minutos
+        List<LocalTime> horasDisponiveis = new ArrayList<>();
+        LocalTime horarioAtual = inicioDia;
+
+        while (!horarioAtual.isAfter(fimDia.minusMinutes(30))) {
+            boolean estaOcupado = horasOcupadas.contains(horarioAtual);
+            boolean eNoPassado = dataAgendamento.isEqual(LocalDate.now()) && horarioAtual.isBefore(LocalTime.now());
+
+            if (!estaOcupado && !eNoPassado) {
+                horasDisponiveis.add(horarioAtual);
+            }
+            horarioAtual = horarioAtual.plusMinutes(30); // Avança 30 minutos
+        }
+        return horasDisponiveis; // Retornar a lista final
+    }
+}
