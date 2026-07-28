@@ -1,0 +1,5 @@
+$kind: http-request
+name: Listar Agendamentos
+url: "{{baseUrl}}/agendamentos"
+method: GET
+order: 1785266163510
