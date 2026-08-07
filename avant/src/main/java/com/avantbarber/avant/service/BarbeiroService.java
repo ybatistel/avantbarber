@@ -6,6 +6,7 @@ import com.avantbarber.avant.exception.ChaveDuplicadaException;
 import org.springframework.stereotype.Service;
 
 import com.avantbarber.avant.dto.BarbeiroDTO;
+import com.avantbarber.avant.dto.BarbeiroPublicoDTO;
 import com.avantbarber.avant.dto.BarbeiroRequestDTO;
 import com.avantbarber.avant.exception.RecursoNaoEncontradoException;
 import com.avantbarber.avant.model.Barbeiro;
@@ -21,6 +22,12 @@ public class BarbeiroService {
     public List<BarbeiroDTO> listarBarbeiros() {
         return barbeiroRepository.findAll().stream()
                 .map(this::toDTO)
+                .toList();
+    }
+
+    public List<BarbeiroPublicoDTO> listarBarbeirosPublico() {
+        return barbeiroRepository.findAll().stream()
+                .map(barbeiro -> new BarbeiroPublicoDTO(barbeiro.getId(), barbeiro.getNome()))
                 .toList();
     }
 

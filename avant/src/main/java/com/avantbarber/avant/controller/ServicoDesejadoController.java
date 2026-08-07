@@ -28,6 +28,11 @@ public class ServicoDesejadoController {
         return servicoDesejadoService.listarServicosDesejados();
     }
 
+    @GetMapping("/publico")
+    public List<ServicoDesejadoDTO> listarServicosDesejadosPublico() {
+        return servicoDesejadoService.listarServicosDesejados();
+    }
+
     @GetMapping("/{id}")
     public ServicoDesejadoDTO buscawrPorId(@PathVariable Long id) {
         return servicoDesejadoService.buscarPorId(id);
