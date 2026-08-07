@@ -34,9 +34,16 @@ que o back-end estiver estável.
 
 **Futuro (planejado, ainda não implementado):**
 - O **n8n** passa a consumir a API para, a partir da conversa no WhatsApp: checar
-  disponibilidade, cadastrar cliente e criar agendamento automaticamente.
+  disponibilidade, cadastrar cliente e criar agendamento automaticamente, sem o barbeiro
+  no loop no momento da criação.
 - Independentemente da origem da requisição (barbeiro via painel, ou n8n via API), **toda
   validação e persistência acontece na API** — ela é a fonte única de verdade do sistema.
+- Travas de segurança confirmadas para agendamento criado via automação (detalhe em
+  seção 9): nasce **PENDENTE** (igual a qualquer agendamento hoje), fica marcado com
+  **origem = AUTOMACAO**, e um mesmo cliente não pode ter mais que **3 PENDENTES
+  simultâneos** criados por automação. Notificar o barbeiro em tempo real é
+  responsabilidade do **workflow do n8n** (ele já fala com o WhatsApp) — não é
+  responsabilidade da API.
 - Um **painel administrativo** será construído para a gestão da barbearia (stack ainda
   não definida).
 
@@ -78,11 +85,12 @@ autenticação de API key "para o n8n" antes de a integração existir).
 
 ## 7. Domínio — entidades atuais
 
-- **Cliente**: nome, cpf, número, senha, endereço.
+- **Cliente**: nome, cpf (opcional — ver seção 9), número, senha (opcional — ver seção
+  9), endereço.
 - **Barbeiro**: nome, número, cpf, senha, perfil (ADMIN | BARBEIRO).
 - **ServicoDesejado**: nome, preço. Hoje **um único serviço** por agendamento.
 - **Agendamento**: data/hora, status, vínculo com um Cliente, um Barbeiro e **um**
-  ServicoDesejado.
+  ServicoDesejado. Vai ganhar um campo de **origem** (MANUAL | AUTOMACAO) — ver seção 9.
 - **StatusAgendamento** (atual): PENDENTE, CONFIRMADO, CANCELADO, CONCLUIDO, REAGENDADO.
 
 ## 8. Domínio — regras de negócio já implementadas
@@ -110,25 +118,39 @@ agendamento deve saber que existe essa lacuna entre "como é hoje" e "como dever
   — hoje só existe o horário fixo por dia da semana, sem conceito de exceção pontual.
 - **Status expandido**, incluindo "Não Compareceu" (no-show) — o enum atual não cobre
   esse caso (tem `REAGENDADO`, mas não tem algo equivalente a não-comparecimento).
-
-Nota técnica adicional: existe uma classe `business/RegraHorarioFuncionamento.java` no
-código que modela horário de funcionamento de um jeito diferente do que
-`AgendamentoService` realmente usa, e não é referenciada em lugar nenhum — é uma segunda
-fonte de verdade solta, provavelmente WIP. Ao tocar em regras de horário, isso precisa
-ser resolvido (qual é a fonte de verdade), não apenas contornado.
+- **Confirmação de agendamento (PENDENTE → CONFIRMADO)** — bloqueante para o n8n. Hoje
+  não existe, em lugar nenhum do código, uma forma de transicionar um agendamento de
+  PENDENTE para CONFIRMADO (só existem cancelar e reagendar). Confirmado como lacuna a
+  fechar antes da integração com o n8n fazer sentido, já que "PENDENTE até o barbeiro
+  confirmar" não tem como o barbeiro de fato confirmar hoje.
+- **Origem do agendamento (MANUAL | AUTOMACAO)** — todo agendamento passa a registrar se
+  foi criado manualmente pelo barbeiro ou via automação (n8n). É a base da trava de
+  segurança do fluxo automático (ver seção 3).
+- **Limite de PENDENTES simultâneos por cliente via automação** — um cliente não pode
+  ter mais que **3** agendamentos PENDENTES criados por automação ao mesmo tempo; acima
+  disso, novas tentativas do n8n são bloqueadas até algum ser confirmado/cancelado. Esse
+  limite vale só para agendamentos com origem AUTOMACAO, não para os criados manualmente
+  pelo barbeiro.
+- **CPF e senha do Cliente deixam de ser obrigatórios** — hoje são `NOT NULL` em
+  `model/Cliente`, o que é incompatível com um cliente criado a partir de uma conversa de
+  WhatsApp (não faz sentido pedir CPF e senha só para marcar um corte). Confirmado que
+  isso vale para Cliente em geral (cadastro manual e via automação), não é uma exceção
+  isolada do fluxo do n8n.
 
 ## 10. Explicitamente fora de escopo agora (YAGNI)
 
 - Política de cancelamento/reagendamento com prazos mínimos.
 - Penalidade por no-show.
 - Multi-tenant / entidade Barbearia.
-- Autenticação máquina-a-máquina para n8n (será decidida quando a integração for
-  implementada).
+- Notificação em tempo real ao barbeiro via API/backend — fica a cargo do workflow do
+  n8n (ver seção 3), não é responsabilidade do Avant.
 - Stack de front-end além da landing page institucional atual.
 
 ## 11. Decisões em aberto (não resolver preventivamente)
 
-- Como o n8n vai se autenticar na API.
+- **Como o n8n vai se autenticar na API** — mecanismo técnico ainda não escolhido (API
+  key, OAuth2 client credentials, etc.); o *comportamento de negócio* do que o n8n pode
+  fazer já está confirmado (seção 3 e 9), só falta o mecanismo em si.
 - Stack do futuro painel administrativo.
 - Modelagem exata de intervalos/indisponibilidade do barbeiro (seção 9) — regra
   confirmada como necessária, mas desenho ainda não definido.
