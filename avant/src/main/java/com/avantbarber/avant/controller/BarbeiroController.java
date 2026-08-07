@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.avantbarber.avant.dto.BarbeiroDTO;
+import com.avantbarber.avant.dto.BarbeiroPublicoDTO;
 import com.avantbarber.avant.dto.BarbeiroRequestDTO;
 import com.avantbarber.avant.service.BarbeiroService;
 
@@ -22,6 +23,11 @@ public class BarbeiroController {
     @GetMapping
     public ResponseEntity<List<BarbeiroDTO>> listarBarbeiros() {
         return ResponseEntity.ok(barbeiroService.listarBarbeiros());
+    }
+
+    @GetMapping("/publico")
+    public ResponseEntity<List<BarbeiroPublicoDTO>> listarBarbeirosPublico() {
+        return ResponseEntity.ok(barbeiroService.listarBarbeirosPublico());
     }
 
     @GetMapping("/{id}")

@@ -16,3 +16,7 @@ values:
     value: '1'
     enabled: true
     type: default
+  - key: agendamentoId
+    value: '1'
+    enabled: true
+    type: default

@@ -1,0 +1,6 @@
+$kind: http-request
+name: Cancelar Agendamento
+method: PUT
+url: '{{baseUrl}}/agendamentos/{{agendamentoId}}/cancelar'
+order: 4000
+description: Cancela um agendamento existente (status vira CANCELADO). Sem corpo de requisição.

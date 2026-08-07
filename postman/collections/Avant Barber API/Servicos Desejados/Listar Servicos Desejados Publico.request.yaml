@@ -1,0 +1,6 @@
+$kind: http-request
+name: Listar Servicos Desejados Publico
+method: GET
+url: '{{baseUrl}}/servicos-desejados/publico'
+order: 2000
+description: Lista os serviços desejados (nome, preço) — sem autenticação, para a landing page

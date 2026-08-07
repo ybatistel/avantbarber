@@ -1,0 +1,9 @@
+$kind: http-request
+name: Reagendar Agendamento
+method: PUT
+url: '{{baseUrl}}/agendamentos/{{agendamentoId}}/reagendar?novaData=2026-08-12T11:00:00'
+order: 5000
+description: >-
+  Reagenda para uma nova data/hora (revalida horário de funcionamento e disponibilidade,
+  status volta para PENDENTE). Nota: novaData é query param, não corpo JSON — assim como
+  o endpoint está implementado hoje.
