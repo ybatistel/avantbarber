@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This repo has two independent parts:
 
 - `avant/` — the Spring Boot backend (Maven project). All Java code lives here; this is the module you build/test.
-- `front-end/` — a static HTML/CSS/JS client (currently just a skeleton `index.html`, empty `javascript.js`/`styles.css`). No build tooling, no framework.
+- `front-end/` — a static HTML/CSS/JS institutional landing page (no build tooling, no framework). Consumes only the public GET endpoints (`/barbeiros/publico`, `/servicos-desejados/publico`) — it does not let the client book an appointment; that still happens over WhatsApp, per `PROJECT_CONTEXT.md`.
 
 There is no root-level build file — always run Maven commands from inside `avant/`.
 
@@ -41,7 +41,7 @@ The app will not start without a datasource and OAuth2 config (see `avant/src/ma
 - `DB_PASSWORD` — required, no default
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — required for Google OAuth2 login, no default
 
-A local PostgreSQL instance (`avant_barbearia` database) must be reachable. CI (`.github/workflows/pipeline.yaml`) spins up `postgres:15` as a service container and runs `mvn -B package --file avant/pom.xml`. Note CI currently builds with Java 21 via `setup-java`, while `avant/pom.xml` targets `java.version` 25 — be aware of this mismatch if touching either.
+A local PostgreSQL instance (`avant_barbearia` database) must be reachable. CI (`.github/workflows/pipeline.yaml`) spins up `postgres:15` as a service container, configures Java 25 via `setup-java`, and runs `mvn -B package --file avant/pom.xml` — this now matches `avant/pom.xml`'s `java.version` (25).
 
 `spring.jpa.hibernate.ddl-auto` is `update`, so schema is derived from JPA entities directly; there are no migration scripts (no Flyway/Liquibase).
 
@@ -55,10 +55,9 @@ service/     → @Service business logic, orchestrates repositories, maps entity
 repository/  → Spring Data JPA interfaces
 model/       → @Entity classes (Lombok @Getter/@Setter/@Builder)
 dto/         → request/response DTOs (services never return entities to controllers)
-business/    → standalone business-rule helpers (e.g. RegraHorarioFuncionamento)
 exception/   → domain exceptions (BusinessException, ChaveDuplicadaException, HorarioFuncionamentoException, RecursoNaoEncontradoException)
 infra/       → RestExceptionHandler (@ControllerAdvice) mapping domain exceptions to RestErrorMessage/HTTP status
-config/      → SpringConfig: security filter chain, OAuth2 login
+config/      → SpringConfig: security filter chain, OAuth2 login, CORS for the public endpoints
 ```
 
 Core domain: a barbershop booking system.
@@ -71,7 +70,7 @@ Core domain: a barbershop booking system.
 - Prevents double-booking: a barber or client can't have two appointments at the same timestamp.
 - `salvar`/`cancelar`/`reagendar` are `@Transactional`; reads are not.
 
-Auth: Spring Security with Google OAuth2 login only (`SpringConfig`). `/` and `/login` are public; everything else requires authentication. There is no username/password login flow wired into Security despite `Cliente`/`Barbeiro` having a `senha` field and `spring-boot-starter-security-oauth2-authorization-server` being a dependency — that authorization-server piece isn't wired up in `SpringConfig` yet.
+Auth: Spring Security with Google OAuth2 login only (`SpringConfig`). Public (no auth): `/`, `/login`, and two read-only GET endpoints for the landing page — `/barbeiros/publico` (returns `BarbeiroPublicoDTO`: id + nome only, never cpf/numero) and `/servicos-desejados/publico`. Everything else requires authentication. CORS is enabled only for those two public endpoints. There is no username/password login flow wired into Security despite `Cliente`/`Barbeiro` having a `senha` field and `spring-boot-starter-security-oauth2-authorization-server` being a dependency — that authorization-server piece isn't wired up in `SpringConfig` yet.
 
 Error handling: domain exceptions thrown from services are translated centrally by `RestExceptionHandler` into a consistent `RestErrorMessage` JSON body (timestamp, status, error, message, path) — controllers never catch these themselves.
 
