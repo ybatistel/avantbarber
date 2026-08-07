@@ -69,9 +69,12 @@ autenticação de API key "para o n8n" antes de a integração existir).
   (`controller → service → repository`), DTOs manuais (sem MapStruct), exceções de
   domínio centralizadas em `RestExceptionHandler`, Postgres com schema derivado das
   entidades (`ddl-auto: update`, sem migrations).
-- Segurança: OAuth2 login (Google) para o barbeiro/admin. Nenhum mecanismo de
-  autenticação máquina-a-máquina existe ainda (relevante para quando o n8n chegar).
-- `front-end/` é hoje só um esqueleto HTML vazio — não é a prioridade atual.
+- Segurança: OAuth2 login (Google) para o barbeiro/admin. Dois endpoints GET públicos
+  (sem login) existem para a landing page: `/barbeiros/publico` (só id+nome, nunca
+  cpf/numero) e `/servicos-desejados/publico`. Nenhum mecanismo de autenticação
+  máquina-a-máquina existe ainda (relevante para quando o n8n chegar).
+- `front-end/` é a landing page institucional (seção 3) — consome só os dois endpoints
+  públicos acima, não agenda nada.
 
 ## 7. Domínio — entidades atuais
 
