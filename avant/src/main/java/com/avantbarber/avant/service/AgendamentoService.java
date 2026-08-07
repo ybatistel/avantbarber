@@ -13,7 +13,6 @@ import com.avantbarber.avant.repository.ClienteRepository;
 import com.avantbarber.avant.repository.ServicoDesejadoRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;

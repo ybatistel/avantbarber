@@ -1,0 +1,9 @@
+$kind: http-request
+name: Listar Horários Disponíveis
+method: GET
+url: '{{baseUrl}}/agendamentos/disponiveis?barbeiroId={{barbeiroId}}&data=2026-08-11'
+order: 2500
+description: >-
+  Lista os horários livres de um barbeiro em uma data (slots de 30 em 30 minutos,
+  respeitando o expediente do dia). Requer login (barbeiro/admin) hoje — ver observação
+  na descrição da coleção sobre a landing page não conseguir consumir isso ainda.

@@ -1,0 +1,6 @@
+$kind: http-request
+name: Listar Barbeiros Publico
+method: GET
+url: '{{baseUrl}}/barbeiros/publico'
+order: 2000
+description: Lista os barbeiros com dados públicos (id, nome) — sem autenticação, para a landing page

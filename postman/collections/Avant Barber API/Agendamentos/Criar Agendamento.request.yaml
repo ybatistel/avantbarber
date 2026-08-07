@@ -1,0 +1,21 @@
+$kind: http-request
+name: Criar Agendamento
+method: POST
+url: '{{baseUrl}}/agendamentos'
+order: 3000
+description: >-
+  Cria um agendamento (status inicial sempre PENDENTE, definido pela API — o campo
+  "status" do DTO de request existe mas não é lido por esse endpoint). Usado hoje pelo
+  barbeiro ao registrar manualmente o que foi combinado por WhatsApp.
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "clienteId": 1,
+      "servicoId": 1,
+      "barbeiroId": 1,
+      "dataHora": "2026-08-11T10:00:00"
+    }

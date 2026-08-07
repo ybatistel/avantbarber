@@ -1,0 +1,6 @@
+$kind: http-request
+name: Buscar Agendamento por ID
+method: GET
+url: '{{baseUrl}}/agendamentos/{{agendamentoId}}'
+order: 2000
+description: Busca um agendamento pelo seu ID. Requer login (barbeiro/admin) — não é consumido pela landing page.
