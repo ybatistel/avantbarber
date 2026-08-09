@@ -24,6 +24,10 @@ public class Agendamento {
     @Enumerated(EnumType.STRING)
     private StatusAgendamento status;
 
+    @Column(length = 20)
+    @Enumerated(EnumType.STRING)
+    private OrigemAgendamento origem;
+
     @ManyToOne
     @JoinColumn(name = "barbeiro_id", nullable = false)
     private Barbeiro barbeiro;

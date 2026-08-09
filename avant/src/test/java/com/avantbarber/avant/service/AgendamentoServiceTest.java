@@ -87,7 +87,7 @@ class AgendamentoServiceTest {
     }
 
     private static AgendamentoRequestDTO requestDTO(LocalDateTime data) {
-        return new AgendamentoRequestDTO(CLIENTE_ID, SERVICO_ID, BARBEIRO_ID, data, null);
+        return new AgendamentoRequestDTO(CLIENTE_ID, SERVICO_ID, BARBEIRO_ID, data, null, null);
     }
 
     private static Agendamento agendamentoExistente(Long id, LocalDateTime data, StatusAgendamento status) {
