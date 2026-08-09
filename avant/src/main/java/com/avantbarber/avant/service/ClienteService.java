@@ -33,7 +33,7 @@ public class ClienteService {
 
     public ClienteDTO salvar(ClienteRequestDTO clienteRequestDTO) {
         Cliente cliente = toEntity(clienteRequestDTO);
-        if(clienteRepository.findByCpf(cliente.getCpf()).isPresent()) {
+        if (cliente.getCpf() != null && clienteRepository.findByCpf(cliente.getCpf()).isPresent()) {
             throw new ChaveDuplicadaException("Erro: Já existe um cliente com o CPF informado!");
         }
         Cliente savedCliente = clienteRepository.save(cliente);

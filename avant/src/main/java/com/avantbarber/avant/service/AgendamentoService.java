@@ -6,6 +6,7 @@ import com.avantbarber.avant.exception.BusinessException;
 import com.avantbarber.avant.exception.HorarioFuncionamentoException;
 import com.avantbarber.avant.exception.RecursoNaoEncontradoException;
 import com.avantbarber.avant.model.Agendamento;
+import com.avantbarber.avant.model.OrigemAgendamento;
 import com.avantbarber.avant.model.StatusAgendamento;
 import com.avantbarber.avant.repository.AgendamentoRepository;
 import com.avantbarber.avant.repository.BarbeiroRepository;
@@ -24,6 +25,8 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class AgendamentoService {
+
+    private static final int LIMITE_PENDENTES_AUTOMACAO = 3;
 
     private final AgendamentoRepository agendamentoRepository;
     private final ClienteRepository clienteRepository;
@@ -49,7 +52,8 @@ public class AgendamentoService {
                 agendamento.getServico().getPreco(),
                 agendamento.getCliente().getCpf(),
                 agendamento.getData(),
-                agendamento.getStatus()
+                agendamento.getStatus(),
+                agendamento.getOrigem()
         );
     }
 
@@ -63,6 +67,9 @@ public class AgendamentoService {
         agendamento.setServico(servicoDesejadoRepository.findById(agendamentoRequestDTO.getServicoId())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Serviço não encontrado com o ID: " + agendamentoRequestDTO.getServicoId())));
         agendamento.setData(agendamentoRequestDTO.getDataHora());
+        agendamento.setOrigem(agendamentoRequestDTO.getOrigem() != null
+                ? agendamentoRequestDTO.getOrigem()
+                : OrigemAgendamento.MANUAL);
 
         return agendamento;
     }
@@ -80,8 +87,24 @@ public class AgendamentoService {
         validarHorarioFuncionamento(agendamento.getData());
         validarDisponibilidadeBarbeiro(agendamento.getBarbeiro().getId(), agendamento.getData());
         validarDisponibilidadeCliente(agendamento.getCliente().getId(), agendamento.getData());
+        if (agendamento.getOrigem() == OrigemAgendamento.AUTOMACAO) {
+            validarLimitePendentesAutomacao(agendamento.getCliente().getId());
+        }
         agendamento.setStatus(StatusAgendamento.PENDENTE);
         return toDTO(agendamentoRepository.save(agendamento));
+    }
+
+    private void validarLimitePendentesAutomacao(Long clienteId) {
+        // Trava o cliente até o fim da transação, serializando validações concorrentes
+        // pro mesmo cliente e evitando que o limite seja ultrapassado.
+        clienteRepository.findByIdComLock(clienteId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Cliente não encontrado com o ID: " + clienteId));
+        long pendentesViaAutomacao = agendamentoRepository.countByClienteIdAndStatusAndOrigem(
+                clienteId, StatusAgendamento.PENDENTE, OrigemAgendamento.AUTOMACAO);
+        if (pendentesViaAutomacao >= LIMITE_PENDENTES_AUTOMACAO) {
+            throw new BusinessException("Erro: O cliente já possui o máximo de " + LIMITE_PENDENTES_AUTOMACAO
+                    + " agendamentos pendentes criados por automação!");
+        }
     }
 
     private void validarDataRetroativa(LocalDateTime dataAgendamento) {
@@ -134,6 +157,17 @@ public class AgendamentoService {
         if (agendamentoRepository.existsByData(dataAgendamento)) {
             throw new BusinessException("Erro: Já existe um agendamento nesse horário!");
         }
+    }
+
+    @Transactional
+    public AgendamentoDTO confirmar(Long id) {
+        Agendamento agendamento = agendamentoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento não encontrado com o ID: " + id));
+        if (agendamento.getStatus() != StatusAgendamento.PENDENTE) {
+            throw new BusinessException("Erro: Só é possível confirmar um agendamento que esteja PENDENTE!");
+        }
+        agendamento.setStatus(StatusAgendamento.CONFIRMADO);
+        return toDTO(agendamentoRepository.save(agendamento));
     }
 
     @Transactional

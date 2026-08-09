@@ -1,6 +1,7 @@
 package com.avantbarber.avant.repository;
 
 import com.avantbarber.avant.model.Agendamento;
+import com.avantbarber.avant.model.OrigemAgendamento;
 import com.avantbarber.avant.model.StatusAgendamento;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -19,4 +20,5 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
     boolean existsByBarbeiroIdAndData(Long barbeiroId, LocalDateTime data);
     boolean existsByClienteIdAndData(Long clienteId, LocalDateTime data);
     boolean existsByData(LocalDateTime data);
+    long countByClienteIdAndStatusAndOrigem(Long clienteId, StatusAgendamento status, OrigemAgendamento origem);
 }

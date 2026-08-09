@@ -2,6 +2,7 @@ package com.avantbarber.avant.dto;
 
 import java.time.LocalDateTime;
 
+import com.avantbarber.avant.model.OrigemAgendamento;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,5 +16,6 @@ public class AgendamentoRequestDTO {
     private Long barbeiroId;
     private LocalDateTime dataHora;
     private String status;
+    private OrigemAgendamento origem;
 
 }
