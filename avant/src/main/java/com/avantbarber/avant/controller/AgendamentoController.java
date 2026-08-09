@@ -40,6 +40,11 @@ public class AgendamentoController {
         return ResponseEntity.status(201).body(agendamentoService.salvar(agendamentoRequestDTO));
     }
 
+    @PutMapping("/{id}/confirmar")
+    public ResponseEntity<AgendamentoDTO> confirmar(@PathVariable Long id) {
+        return ResponseEntity.ok(agendamentoService.confirmar(id));
+    }
+
     @PutMapping("/{id}/cancelar")
     public ResponseEntity<AgendamentoDTO> cancelar(@PathVariable Long id) {
         return ResponseEntity.ok(agendamentoService.cancelar(id));

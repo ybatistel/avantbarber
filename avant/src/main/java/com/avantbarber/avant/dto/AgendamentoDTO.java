@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import com.avantbarber.avant.model.Agendamento;
+import com.avantbarber.avant.model.OrigemAgendamento;
 import com.avantbarber.avant.model.StatusAgendamento;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -24,6 +25,7 @@ public class AgendamentoDTO {
     private String cpfCliente;
     private LocalDateTime dataHora;
     private StatusAgendamento status;
+    private OrigemAgendamento origem;
 
     public AgendamentoDTO(Agendamento agendamento) {
         this.id = agendamento.getId();
@@ -37,5 +39,6 @@ public class AgendamentoDTO {
         this.cpfCliente = agendamento.getCliente().getCpf();
         this.dataHora = agendamento.getData();
         this.status = agendamento.getStatus();
+        this.origem = agendamento.getOrigem();
     }
 }
