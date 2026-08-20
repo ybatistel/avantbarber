@@ -2,6 +2,7 @@ package com.avantbarber.avant.service;
 
 import java.util.List;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.avantbarber.avant.dto.ClienteDTO;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 public class ClienteService {
 
     private final ClienteRepository clienteRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public List<ClienteDTO> listarClientes() {
         return clienteRepository.findAll().stream()
@@ -46,7 +48,7 @@ public class ClienteService {
         cliente.setNome(clienteRequestDTO.getNome());
         cliente.setNumero(clienteRequestDTO.getNumero());
         cliente.setCpf(clienteRequestDTO.getCpf());
-        cliente.setSenha(clienteRequestDTO.getSenha());
+        cliente.setSenha(encodeSenha(clienteRequestDTO.getSenha()));
         cliente.setEndereco(clienteRequestDTO.getEndereco());
         Cliente updatedCliente = clienteRepository.save(cliente);
         return toDTO(updatedCliente);
@@ -70,8 +72,12 @@ public class ClienteService {
         cliente.setNome(clienteRequestDTO.getNome());
         cliente.setNumero(clienteRequestDTO.getNumero());
         cliente.setCpf(clienteRequestDTO.getCpf());
-        cliente.setSenha(clienteRequestDTO.getSenha());
+        cliente.setSenha(encodeSenha(clienteRequestDTO.getSenha()));
         cliente.setEndereco(clienteRequestDTO.getEndereco());
         return cliente;
+    }
+
+    private String encodeSenha(String senha) {
+        return senha == null ? null : passwordEncoder.encode(senha);
     }
 }
