@@ -3,6 +3,7 @@ package com.avantbarber.avant.service;
 import java.util.List;
 
 import com.avantbarber.avant.exception.ChaveDuplicadaException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.avantbarber.avant.dto.BarbeiroDTO;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 public class BarbeiroService {
 
     private final BarbeiroRepository barbeiroRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public List<BarbeiroDTO> listarBarbeiros() {
         return barbeiroRepository.findAll().stream()
@@ -45,7 +47,7 @@ public class BarbeiroService {
         barbeiro.setNome(barbeiroRequestDTO.getNome());
         barbeiro.setNumero(barbeiroRequestDTO.getNumero());
         barbeiro.setCpf(barbeiroRequestDTO.getCpf());
-        barbeiro.setSenha(barbeiroRequestDTO.getSenha());
+        barbeiro.setSenha(passwordEncoder.encode(barbeiroRequestDTO.getSenha()));
         barbeiro.setPerfil(barbeiroRequestDTO.getPerfil());
         return barbeiro;
     }
@@ -71,7 +73,7 @@ public class BarbeiroService {
         barbeiro.setNome(barbeiroRequestDTO.getNome());
         barbeiro.setNumero(barbeiroRequestDTO.getNumero());
         barbeiro.setCpf(barbeiroRequestDTO.getCpf());
-        barbeiro.setSenha(barbeiroRequestDTO.getSenha());
+        barbeiro.setSenha(passwordEncoder.encode(barbeiroRequestDTO.getSenha()));
         barbeiro.setPerfil(barbeiroRequestDTO.getPerfil());
         Barbeiro updatedBarbeiro = barbeiroRepository.save(barbeiro);
         return toDTO(updatedBarbeiro);
