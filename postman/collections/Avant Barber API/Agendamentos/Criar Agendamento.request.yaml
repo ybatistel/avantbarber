@@ -9,8 +9,11 @@ description: >-
   barbeiro ao registrar manualmente o que foi combinado por WhatsApp.
 
 
-  "origem" é opcional (MANUAL | AUTOMACAO); se omitido, assume MANUAL. Agendamentos com
-  origem AUTOMACAO (futuro n8n) são limitados a 3 PENDENTES simultâneos por cliente.
+  "origem" (MANUAL | AUTOMACAO) é derivada da credencial: requisição autenticada com o
+  header X-API-Key do n8n SEMPRE grava AUTOMACAO, ignorando o valor do body (mesmo omitido
+  ou MANUAL). Requisição do barbeiro (login) pode informar a origem e, se omitida, assume
+  MANUAL. Agendamentos com origem AUTOMACAO são limitados a 3 PENDENTES simultâneos por
+  cliente (400 ao exceder). O n8n deve guardar o "id" retornado para cancelar/reagendar.
 
 
   Validações (400 com RestErrorMessage): data/hora não pode estar no passado; dia e

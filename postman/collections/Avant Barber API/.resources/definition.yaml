@@ -1,6 +1,28 @@
 $kind: collection
 name: Avant Barber API
-description: API para gerenciamento da barbearia Avant - Barbeiros, Clientes e Serviços Desejados
+description: >-
+  API para gerenciamento da barbearia Avant - Barbeiros, Clientes, Serviços Desejados e
+  Agendamentos.
+
+
+  Autenticação — há dois tipos de consumidor autenticado:
+
+  1) Barbeiro/admin: login OAuth2 Google (sessão), acesso a todos os endpoints.
+
+  2) n8n (automação via WhatsApp): header "X-API-Key: {{n8nApiKey}}", com a chave definida
+  na variável de ambiente N8N_API_KEY do servidor (vazia = acesso do n8n desligado, tudo
+  com esse header responde 401). A chave só libera uma lista fechada de endpoints:
+  GET /agendamentos/disponiveis, GET /clientes/busca, POST /clientes, POST /agendamentos
+  (a origem é sempre gravada como AUTOMACAO), PUT /agendamentos/{id}/cancelar e PUT
+  /agendamentos/{id}/reagendar, mais os GET públicos. Qualquer outro endpoint responde
+  403 para o n8n (em especial confirmar agendamento, DELETE e a leitura em massa de
+  clientes/agendamentos). Chave errada ou vazia responde 401.
+
+
+  Endpoints públicos (sem autenticação, para a landing page): GET /barbeiros/publico e GET
+  /servicos-desejados/publico.
 variables:
   - key: baseUrl
     value: 'http://localhost:8080'
+  - key: n8nApiKey
+    value: ''

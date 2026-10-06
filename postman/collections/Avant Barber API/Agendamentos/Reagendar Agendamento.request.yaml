@@ -7,5 +7,7 @@ description: >-
   Reagenda para uma nova data/hora (revalida data no passado, horário de funcionamento,
   término do serviço dentro do expediente e sobreposição de intervalo para barbeiro e
   cliente, considerando a duração do serviço do agendamento; o próprio agendamento é
-  ignorado na checagem de sobreposição). Status volta para PENDENTE. Nota: novaData é
-  query param, não corpo JSON — assim como o endpoint está implementado hoje.
+  ignorado na checagem de sobreposição). Status volta para PENDENTE (sem reaplicar o
+  limite de 3 pendentes da automação). Nota: novaData é query param, não corpo JSON —
+  assim como o endpoint está implementado hoje. Aceita login (barbeiro/admin) ou o header
+  X-API-Key do n8n; não há checagem do dono do agendamento.

@@ -23,6 +23,11 @@ public class ClienteController {
         return ResponseEntity.ok(clienteService.listarClientes());
     }
 
+    @GetMapping("/busca")
+    public ResponseEntity<ClienteDTO> buscarPorNumero(@RequestParam String numero) {
+        return ResponseEntity.ok(clienteService.buscarPorNumero(numero));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ClienteDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(clienteService.buscarPorId(id));

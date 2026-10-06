@@ -1,0 +1,16 @@
+$kind: http-request
+name: Buscar Cliente por Numero
+method: GET
+url: '{{baseUrl}}/clientes/busca?numero=%2B55%20(11)%2098888-8888'
+order: 1500
+description: >-
+  Busca um cliente pelo número de WhatsApp. O número é normalizado para só dígitos antes da
+  busca (remove +, espaços, parênteses e traços), então "+55 (11) 98888-8888" e
+  "5511988888888" encontram o mesmo cliente. Respostas: 200 com o cliente; 404 se não
+  existir nenhum cliente com esse número; 400 se o número for inválido (sem nenhum dígito
+  ou com mais de 20 dígitos); 400 também se o parâmetro "numero" estiver ausente.
+
+
+  Usado pelo n8n para o fluxo buscar-ou-criar: se der 404, o n8n cria o cliente com POST
+  /clientes. Aceita login (barbeiro/admin) ou o header X-API-Key do n8n. Atenção: a
+  resposta traz o cliente completo (inclusive cpf e endereco).

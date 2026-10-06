@@ -3,4 +3,8 @@ name: Cancelar Agendamento
 method: PUT
 url: '{{baseUrl}}/agendamentos/{{agendamentoId}}/cancelar'
 order: 4000
-description: Cancela um agendamento existente (status vira CANCELADO). Sem corpo de requisição.
+description: >-
+  Cancela um agendamento existente (status vira CANCELADO). Sem corpo de requisição. 404 se
+  não existir. Atenção: não há guarda de status (permite cancelar um agendamento
+  CONCLUIDO) nem checagem do dono do agendamento. Aceita login (barbeiro/admin) ou o header
+  X-API-Key do n8n, que cancela a pedido do cliente usando o id guardado na criação.

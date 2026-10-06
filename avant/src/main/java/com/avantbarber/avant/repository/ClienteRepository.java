@@ -14,6 +14,8 @@ import com.avantbarber.avant.model.Cliente;
 public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     Optional<Cliente> findByCpf(String cpf);
 
+    Optional<Cliente> findByNumero(String numero);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Cliente c where c.id = :id")
     Optional<Cliente> findByIdComLock(Long id);

@@ -1,11 +1,14 @@
 package com.avantbarber.avant.controller;
 
+import com.avantbarber.avant.config.ApiKeyAuthFilter;
 import com.avantbarber.avant.dto.AgendamentoDTO;
 import com.avantbarber.avant.dto.AgendamentoRequestDTO;
+import com.avantbarber.avant.model.OrigemAgendamento;
 import com.avantbarber.avant.service.AgendamentoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -36,7 +39,13 @@ public class AgendamentoController {
     }
 
     @PostMapping
-    public ResponseEntity<AgendamentoDTO> salvar(@Valid @RequestBody AgendamentoRequestDTO agendamentoRequestDTO) {
+    public ResponseEntity<AgendamentoDTO> salvar(@Valid @RequestBody AgendamentoRequestDTO agendamentoRequestDTO,
+                                                 Authentication authentication) {
+        // A origem vem da credencial, não do body: tudo que o n8n cria é AUTOMACAO, para que a
+        // trava de pendentes por automação valha mesmo que o workflow omita ou mande MANUAL.
+        if (ehRequisicaoDoN8n(authentication)) {
+            agendamentoRequestDTO.setOrigem(OrigemAgendamento.AUTOMACAO);
+        }
         return ResponseEntity.status(201).body(agendamentoService.salvar(agendamentoRequestDTO));
     }
 
@@ -53,5 +62,10 @@ public class AgendamentoController {
     @PutMapping("/{id}/reagendar")
     public ResponseEntity<AgendamentoDTO> reagendar(@PathVariable Long id, @Valid @RequestParam LocalDateTime novaData) {
         return ResponseEntity.ok(agendamentoService.reagendar(id, novaData));
+    }
+
+    private boolean ehRequisicaoDoN8n(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_" + ApiKeyAuthFilter.ROLE_N8N));
     }
 }
