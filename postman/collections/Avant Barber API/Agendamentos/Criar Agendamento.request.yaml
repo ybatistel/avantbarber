@@ -7,6 +7,17 @@ description: >-
   Cria um agendamento (status inicial sempre PENDENTE, definido pela API — o campo
   "status" do DTO de request existe mas não é lido por esse endpoint). Usado hoje pelo
   barbeiro ao registrar manualmente o que foi combinado por WhatsApp.
+
+
+  "origem" é opcional (MANUAL | AUTOMACAO); se omitido, assume MANUAL. Agendamentos com
+  origem AUTOMACAO (futuro n8n) são limitados a 3 PENDENTES simultâneos por cliente.
+
+
+  Validações (400 com RestErrorMessage): data/hora não pode estar no passado; dia e
+  horário dentro do expediente (sábado fechado); o serviço inteiro (dataHora +
+  duracaoMinutos do serviço) precisa terminar até o fechamento; barbeiro e cliente não
+  podem ter outro agendamento não cancelado cujo intervalo [início, início + duração)
+  sobreponha o novo. 404 se cliente, barbeiro ou serviço não existirem.
 headers:
   - key: Content-Type
     value: application/json
@@ -17,5 +28,6 @@ body:
       "clienteId": 1,
       "servicoId": 1,
       "barbeiroId": 1,
-      "dataHora": "2026-08-11T10:00:00"
+      "dataHora": "2026-08-11T10:00:00",
+      "origem": "MANUAL"
     }

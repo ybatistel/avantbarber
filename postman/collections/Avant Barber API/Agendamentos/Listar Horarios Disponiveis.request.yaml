@@ -1,9 +1,16 @@
 $kind: http-request
 name: Listar Horários Disponíveis
 method: GET
-url: '{{baseUrl}}/agendamentos/disponiveis?barbeiroId={{barbeiroId}}&data=2026-08-11'
+url: '{{baseUrl}}/agendamentos/disponiveis?barbeiroId={{barbeiroId}}&data=2026-08-11&servicoId={{servicoId}}'
 order: 2500
 description: >-
-  Lista os horários livres de um barbeiro em uma data (slots de 30 em 30 minutos,
-  respeitando o expediente do dia). Requer login (barbeiro/admin) hoje — ver observação
-  na descrição da coleção sobre a landing page não conseguir consumir isso ainda.
+  Lista os horários de início livres de um barbeiro em uma data (slots de 30 em 30
+  minutos, respeitando o expediente do dia). Os três query params são obrigatórios:
+  barbeiroId, data (yyyy-MM-dd) e servicoId. O servicoId define a duração considerada —
+  um horário só é retornado se o serviço inteiro (início + duracaoMinutos) couber antes do
+  fechamento e não sobrepuser nenhum agendamento não cancelado do barbeiro (cada
+  agendamento ocupado bloqueia pela duração do SEU PRÓPRIO serviço). Sábado retorna lista
+  vazia. 404 se o barbeiro ou o serviço não existirem. Requer login (barbeiro/admin) hoje
+  — ver observação na descrição da coleção sobre a landing page não conseguir consumir
+  isso ainda; o n8n deverá usar este endpoint para checar disponibilidade quando a
+  integração existir.

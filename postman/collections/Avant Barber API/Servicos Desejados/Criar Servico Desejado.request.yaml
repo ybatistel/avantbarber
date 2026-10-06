@@ -3,7 +3,11 @@ name: Criar Servico Desejado
 method: POST
 url: '{{baseUrl}}/servicos-desejados'
 order: 3000
-description: Cria um novo serviço desejado
+description: >-
+  Cria um novo serviço desejado. duracaoMinutos é obrigatório, em minutos, e deve ser
+  múltiplo de 30 e maior que zero (ex: 30, 60, 90) — caso contrário a API responde 400
+  (BusinessException). A duração é usada para calcular disponibilidade e sobreposição de
+  agendamentos.
 headers:
   - key: Content-Type
     value: application/json
@@ -12,5 +16,6 @@ body:
   content: |-
     {
       "nome": "Corte de Cabelo",
-      "preco": 35.00
+      "preco": 35.00,
+      "duracaoMinutos": 30
     }

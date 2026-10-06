@@ -1,0 +1,10 @@
+$kind: http-request
+name: Confirmar Agendamento
+method: PUT
+url: '{{baseUrl}}/agendamentos/{{agendamentoId}}/confirmar'
+order: 3500
+description: >-
+  Confirma um agendamento (status PENDENTE vira CONFIRMADO). Sem corpo de requisição.
+  Só é permitido para agendamentos PENDENTES — qualquer outro status responde 400. 404 se
+  o agendamento não existir. Usado pelo barbeiro para confirmar o que nasceu PENDENTE
+  (inclusive os criados via automação).

@@ -4,6 +4,8 @@ method: PUT
 url: '{{baseUrl}}/agendamentos/{{agendamentoId}}/reagendar?novaData=2026-08-12T11:00:00'
 order: 5000
 description: >-
-  Reagenda para uma nova data/hora (revalida horário de funcionamento e disponibilidade,
-  status volta para PENDENTE). Nota: novaData é query param, não corpo JSON — assim como
-  o endpoint está implementado hoje.
+  Reagenda para uma nova data/hora (revalida data no passado, horário de funcionamento,
+  término do serviço dentro do expediente e sobreposição de intervalo para barbeiro e
+  cliente, considerando a duração do serviço do agendamento; o próprio agendamento é
+  ignorado na checagem de sobreposição). Status volta para PENDENTE. Nota: novaData é
+  query param, não corpo JSON — assim como o endpoint está implementado hoje.

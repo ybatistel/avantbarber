@@ -3,7 +3,10 @@ name: Atualizar Servico Desejado
 method: PUT
 url: '{{baseUrl}}/servicos-desejados/{{servicoId}}'
 order: 4000
-description: Atualiza os dados de um serviço desejado existente
+description: >-
+  Atualiza os dados de um serviço desejado existente. duracaoMinutos é obrigatório
+  (múltiplo de 30, maior que zero) — o PUT substitui o serviço inteiro, então omitir o
+  campo resulta em 400.
 headers:
   - key: Content-Type
     value: application/json
@@ -11,6 +14,7 @@ body:
   type: json
   content: |-
     {
-      "nome": "Corte de Cabelo",
-      "preco": 35.00
+      "nome": "Corte e Barba",
+      "preco": 55.00,
+      "duracaoMinutos": 60
     }
