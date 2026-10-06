@@ -3,4 +3,4 @@ name: Deletar Cliente
 method: DELETE
 url: '{{baseUrl}}/clientes/{{clienteId}}'
 order: 5000
-description: Remove um cliente pelo seu ID
+description: Remove um cliente pelo seu ID. Requer login (barbeiro/admin) — o n8n recebe 403.

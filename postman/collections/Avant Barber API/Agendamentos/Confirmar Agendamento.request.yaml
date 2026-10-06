@@ -6,5 +6,6 @@ order: 3500
 description: >-
   Confirma um agendamento (status PENDENTE vira CONFIRMADO). Sem corpo de requisição.
   Só é permitido para agendamentos PENDENTES — qualquer outro status responde 400. 404 se
-  o agendamento não existir. Usado pelo barbeiro para confirmar o que nasceu PENDENTE
-  (inclusive os criados via automação).
+  o agendamento não existir. Usado pelo barbeiro (login) para confirmar o que nasceu
+  PENDENTE (inclusive os criados via automação). O n8n NÃO pode confirmar: com o header
+  X-API-Key a resposta é 403.

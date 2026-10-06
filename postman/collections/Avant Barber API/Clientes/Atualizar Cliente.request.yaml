@@ -3,7 +3,12 @@ name: Atualizar Cliente
 method: PUT
 url: '{{baseUrl}}/clientes/{{clienteId}}'
 order: 4000
-description: Atualiza os dados de um cliente existente
+description: >-
+  Atualiza os dados de um cliente existente (o PUT substitui todos os campos). cpf, senha e
+  endereco são opcionais; a senha, se informada, é gravada com hash BCrypt. O "numero" é
+  normalizado para só dígitos e precisa ter de 1 a 20 dígitos (400 se inválido); repetir o
+  número do próprio cliente é permitido, mas número ou CPF de outro cliente responde 409.
+  404 se o cliente não existir. Requer login (barbeiro/admin) — o n8n recebe 403.
 headers:
   - key: Content-Type
     value: application/json

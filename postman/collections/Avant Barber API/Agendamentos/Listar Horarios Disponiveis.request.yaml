@@ -10,7 +10,6 @@ description: >-
   um horário só é retornado se o serviço inteiro (início + duracaoMinutos) couber antes do
   fechamento e não sobrepuser nenhum agendamento não cancelado do barbeiro (cada
   agendamento ocupado bloqueia pela duração do SEU PRÓPRIO serviço). Sábado retorna lista
-  vazia. 404 se o barbeiro ou o serviço não existirem. Requer login (barbeiro/admin) hoje
-  — ver observação na descrição da coleção sobre a landing page não conseguir consumir
-  isso ainda; o n8n deverá usar este endpoint para checar disponibilidade quando a
-  integração existir.
+  vazia. 404 se o barbeiro ou o serviço não existirem. Aceita login (barbeiro/admin) ou o
+  header X-API-Key do n8n, que usa este endpoint para checar disponibilidade. Não é público:
+  a landing page não consegue consumi-lo (ela é só institucional e não agenda).

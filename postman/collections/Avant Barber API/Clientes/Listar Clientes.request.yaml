@@ -3,4 +3,6 @@ name: Listar Clientes
 method: GET
 url: '{{baseUrl}}/clientes'
 order: 1000
-description: Lista todos os clientes cadastrados
+description: >-
+  Lista todos os clientes cadastrados. Requer login (barbeiro/admin) — o n8n recebe 403
+  (dados pessoais; para achar um cliente ele usa GET /clientes/busca).

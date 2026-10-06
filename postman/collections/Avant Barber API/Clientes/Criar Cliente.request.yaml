@@ -3,7 +3,21 @@ name: Criar Cliente
 method: POST
 url: '{{baseUrl}}/clientes'
 order: 3000
-description: Cria um novo cliente
+description: >-
+  Cria um novo cliente (responde 200 com o cliente criado). Só "nome" e "numero" são
+  necessários na prática: cpf, senha e endereco são opcionais (um cliente vindo de conversa
+  de WhatsApp não os informa). Se informados, o cpf é único e a senha é gravada com hash
+  BCrypt (nunca devolvida).
+
+
+  O "numero" é o número de WhatsApp e identifica o cliente: é normalizado para só dígitos
+  ao salvar (o exemplo abaixo é gravado como "5511988888888") e precisa ter de 1 a 20
+  dígitos — senão 400. Número já cadastrado (ou CPF já cadastrado) responde 409, inclusive
+  em requisições simultâneas.
+
+
+  Usado pelo barbeiro (login) e pelo n8n (header X-API-Key) quando GET /clientes/busca
+  retorna 404.
 headers:
   - key: Content-Type
     value: application/json
@@ -12,8 +26,5 @@ body:
   content: |-
     {
       "nome": "Maria Souza",
-      "numero": "11988888888",
-      "cpf": "987.654.321-00",
-      "senha": "senha456",
-      "endereco": "Rua das Flores, 123"
+      "numero": "+55 (11) 98888-8888"
     }
