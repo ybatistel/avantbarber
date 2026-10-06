@@ -1,15 +1,24 @@
 package com.avantbarber.avant.controller;
 
+import com.avantbarber.avant.config.ApiKeyAuthFilter;
 import com.avantbarber.avant.dto.AgendamentoDTO;
+import com.avantbarber.avant.dto.AgendamentoRequestDTO;
 import com.avantbarber.avant.model.OrigemAgendamento;
 import com.avantbarber.avant.model.StatusAgendamento;
 import com.avantbarber.avant.service.AgendamentoService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -18,6 +27,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -123,6 +133,87 @@ class AgendamentoControllerTest {
                         .content(corpo))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("PENDENTE"));
+    }
+
+    // ---------- origem derivada da credencial ----------
+
+    private static Authentication autenticacaoDoN8n() {
+        return new UsernamePasswordAuthenticationToken(
+                "n8n", null, List.of(new SimpleGrantedAuthority("ROLE_" + ApiKeyAuthFilter.ROLE_N8N)));
+    }
+
+    private static Authentication autenticacaoDoBarbeiro() {
+        return new UsernamePasswordAuthenticationToken(
+                "barbeiro", null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
+    }
+
+    private static String corpoComOrigem(String origem) {
+        String campoOrigem = origem == null ? "" : ", \"origem\": \"" + origem + "\"";
+        return "{\"clienteId\": 1, \"servicoId\": 1, \"barbeiroId\": 1, \"dataHora\": \"2027-01-05T10:00:00\""
+                + campoOrigem + "}";
+    }
+
+    private OrigemAgendamento origemRepassadaAoService() {
+        ArgumentCaptor<AgendamentoRequestDTO> captor = ArgumentCaptor.forClass(AgendamentoRequestDTO.class);
+        verify(agendamentoService).salvar(captor.capture());
+        return captor.getValue().getOrigem();
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"MANUAL", "AUTOMACAO"})
+    void salvar_deveForcarOrigemAutomacao_quandoARequisicaoVemDoN8n(String origemNoBody) throws Exception {
+        given(agendamentoService.salvar(any()))
+                .willReturn(agendamentoDTO(LocalDateTime.of(2027, 1, 5, 10, 0), StatusAgendamento.PENDENTE));
+
+        mockMvc.perform(post("/agendamentos")
+                        .principal(autenticacaoDoN8n())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoComOrigem(origemNoBody)))
+                .andExpect(status().isCreated());
+
+        assertThat(origemRepassadaAoService()).isEqualTo(OrigemAgendamento.AUTOMACAO);
+    }
+
+    @Test
+    void salvar_deveManterAOrigemDoBody_quandoARequisicaoVemDoBarbeiro() throws Exception {
+        given(agendamentoService.salvar(any()))
+                .willReturn(agendamentoDTO(LocalDateTime.of(2027, 1, 5, 10, 0), StatusAgendamento.PENDENTE));
+
+        mockMvc.perform(post("/agendamentos")
+                        .principal(autenticacaoDoBarbeiro())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoComOrigem("MANUAL")))
+                .andExpect(status().isCreated());
+
+        assertThat(origemRepassadaAoService()).isEqualTo(OrigemAgendamento.MANUAL);
+    }
+
+    @Test
+    void salvar_deveDeixarAOrigemNulaParaOServiceAplicarODefault_quandoBarbeiroOmiteOCampo() throws Exception {
+        given(agendamentoService.salvar(any()))
+                .willReturn(agendamentoDTO(LocalDateTime.of(2027, 1, 5, 10, 0), StatusAgendamento.PENDENTE));
+
+        mockMvc.perform(post("/agendamentos")
+                        .principal(autenticacaoDoBarbeiro())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoComOrigem(null)))
+                .andExpect(status().isCreated());
+
+        assertThat(origemRepassadaAoService()).isNull();
+    }
+
+    @Test
+    void salvar_deveManterAOrigemDoBody_quandoNaoHaAutenticacao() throws Exception {
+        given(agendamentoService.salvar(any()))
+                .willReturn(agendamentoDTO(LocalDateTime.of(2027, 1, 5, 10, 0), StatusAgendamento.PENDENTE));
+
+        mockMvc.perform(post("/agendamentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(corpoComOrigem("MANUAL")))
+                .andExpect(status().isCreated());
+
+        assertThat(origemRepassadaAoService()).isEqualTo(OrigemAgendamento.MANUAL);
     }
 
     @Test

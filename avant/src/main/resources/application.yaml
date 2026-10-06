@@ -19,3 +19,7 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
+
+n8n:
+  # Chave que o n8n envia no header X-API-Key. Opcional: vazia = acesso do n8n desligado.
+  api-key: ${N8N_API_KEY:}

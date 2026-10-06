@@ -290,6 +290,16 @@ class AgendamentoServiceTest {
     }
 
     @Test
+    void salvar_deveLancarRecursoNaoEncontradoComMensagemExata_quandoClienteNaoExiste() {
+        when(clienteRepository.findById(CLIENTE_ID)).thenReturn(Optional.empty());
+        AgendamentoRequestDTO dto = requestDTO(proximaData(DayOfWeek.TUESDAY, LocalTime.of(10, 0)));
+
+        assertThatThrownBy(() -> agendamentoService.salvar(dto))
+                .isInstanceOf(RecursoNaoEncontradoException.class)
+                .hasMessage("Cliente não encontrado com o ID: " + CLIENTE_ID);
+    }
+
+    @Test
     void cancelar_deveLancarRecursoNaoEncontradoException_quandoIdNaoExiste() {
         when(agendamentoRepository.findById(99L)).thenReturn(Optional.empty());
 

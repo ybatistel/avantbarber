@@ -53,12 +53,13 @@ que o back-end estiver estável.
 |---|---|---|
 | Barbeiro (uso interno, hoje manual) | Ativo | Login OAuth2 Google |
 | Landing page institucional | Curto prazo | Somente dados públicos (serviços, barbeiros, horários) — sem agendamento |
-| n8n (automação via WhatsApp) | Planejado, sem data | Auth ainda não definida — decisão adiada para o momento da implementação |
+| n8n (automação via WhatsApp) | Em integração (API pronta, workflow ainda não ligado) | API key no header `X-API-Key`, com allow-list restrita de endpoints (seção 8) |
 | Painel administrativo | Futuro, sem stack definida | A definir |
 
 Qualquer skill que gere/documente endpoints deve pensar nesses consumidores atuais e
 futuros, mas **sem implementar nada que nenhum deles precisa hoje** (ex: não criar
-autenticação de API key "para o n8n" antes de a integração existir).
+endpoint de listagem de agendamentos por cliente "para o n8n" — ele guarda o
+`agendamentoId` por conta própria).
 
 ## 5. Princípios de design do projeto
 
@@ -78,19 +79,21 @@ autenticação de API key "para o n8n" antes de a integração existir).
   entidades (`ddl-auto: update`, sem migrations).
 - Segurança: OAuth2 login (Google) para o barbeiro/admin. Dois endpoints GET públicos
   (sem login) existem para a landing page: `/barbeiros/publico` (só id+nome, nunca
-  cpf/numero) e `/servicos-desejados/publico`. Nenhum mecanismo de autenticação
-  máquina-a-máquina existe ainda (relevante para quando o n8n chegar).
+  cpf/numero) e `/servicos-desejados/publico`. Para o n8n (máquina-a-máquina) existe uma
+  segunda chain de segurança, acionada pelo header `X-API-Key`, com allow-list fechada de
+  endpoints (seção 8); a chain do Google OAuth não mudou.
 - `front-end/` é a landing page institucional (seção 3) — consome só os dois endpoints
   públicos acima, não agenda nada.
 
 ## 7. Domínio — entidades atuais
 
-- **Cliente**: nome, cpf (opcional — ver seção 9), número, senha (opcional — ver seção
-  9), endereço.
+- **Cliente**: nome, cpf (opcional, único quando informado), número (obrigatório, único,
+  só dígitos), senha (opcional, armazenada com hash BCrypt), endereço (opcional).
 - **Barbeiro**: nome, número, cpf, senha, perfil (ADMIN | BARBEIRO).
-- **ServicoDesejado**: nome, preço. Hoje **um único serviço** por agendamento.
-- **Agendamento**: data/hora, status, vínculo com um Cliente, um Barbeiro e **um**
-  ServicoDesejado. Vai ganhar um campo de **origem** (MANUAL | AUTOMACAO) — ver seção 9.
+- **ServicoDesejado**: nome, preço, duração em minutos (múltiplo de 30). Hoje **um único
+  serviço** por agendamento.
+- **Agendamento**: data/hora, status, origem (MANUAL | AUTOMACAO), vínculo com um Cliente,
+  um Barbeiro e **um** ServicoDesejado.
 - **StatusAgendamento** (atual): PENDENTE, CONFIRMADO, CANCELADO, CONCLUIDO, REAGENDADO.
 
 ## 8. Domínio — regras de negócio já implementadas
@@ -114,6 +117,62 @@ autenticação de API key "para o n8n" antes de a integração existir).
   `listarHorariosDisponiveis` ofereceu (API é fonte única de verdade — relevante para
   quando o n8n passar a criar agendamentos direto). Mudança de contrato: o endpoint
   `GET /agendamentos/disponiveis` agora exige `servicoId` como parâmetro obrigatório.
+- **Confirmação de agendamento (PENDENTE → CONFIRMADO)** — `PUT /agendamentos/{id}/confirmar`
+  (`AgendamentoService.confirmar`). Só é permitido para agendamentos PENDENTES; qualquer
+  outro status é rejeitado.
+- **Origem do agendamento (MANUAL | AUTOMACAO)** — todo agendamento registra se foi criado
+  manualmente pelo barbeiro ou via automação (n8n). A origem é **derivada da credencial,
+  não do body**: `POST /agendamentos` autenticado pela API key do n8n sempre grava
+  AUTOMACAO, sobrescrevendo o campo `origem` do request (mesmo omitido ou MANUAL) —
+  `AgendamentoController.salvar`. Requisições do barbeiro (Google) podem informar a
+  origem e, se omitida, assume MANUAL. É a base da trava de segurança do fluxo automático
+  (ver seção 3): sem isso um workflow que omitisse `origem` escaparia do limite abaixo.
+- **Limite de PENDENTES simultâneos por cliente via automação** — um cliente não pode ter
+  mais que **3** agendamentos PENDENTES criados por automação ao mesmo tempo; acima disso,
+  novas tentativas do n8n são bloqueadas até algum ser confirmado/cancelado. Vale só para
+  origem AUTOMACAO, não para os criados manualmente pelo barbeiro. A validação trava o
+  cliente (lock pessimista) para evitar que requisições concorrentes ultrapassem o limite.
+- **CPF e senha do Cliente são opcionais** — cadastro manual e via automação (um cliente
+  vindo de conversa de WhatsApp não informa CPF nem senha só para marcar um corte). CPF é
+  único quando informado; senha, quando informada, é armazenada com hash BCrypt.
+- **Número de WhatsApp identifica o Cliente (único)** — `Cliente.numero` é único
+  (`unique = true` em `model/Cliente`) e **normalizado para só dígitos** (remove `+`,
+  espaços, parênteses e traços — `ClienteService.normalizarNumero`) ao salvar, atualizar
+  e buscar, para que `+55 (11) 99999-9999` e `5511999999999` sejam o mesmo cliente. Salvar
+  ou atualizar com um número que já pertence a outro cliente lança `ChaveDuplicadaException`
+  (409, como o CPF) — inclusive quando duas requisições simultâneas passam pela checagem
+  prévia e só a constraint do banco barra a segunda (traduzida para 409, não 500). Número
+  válido = **ao menos 1 dígito e no máximo 20** após a normalização; senão
+  `BusinessException` (400) em salvar, atualizar e buscar (um valor como `"abc"` nunca é
+  gravado como número vazio). O n8n faz *buscar-ou-criar* via `GET /clientes/busca?numero=...`,
+  que devolve o cliente, 404 se não existir (aí o n8n cria) ou 400 se o número for inválido.
+- **Endereço do Cliente é opcional** — mesma lógica de CPF e senha (cliente vindo de
+  conversa de WhatsApp não informa endereço); vale para cadastro manual e via automação.
+- **Escopo do n8n (autenticação por API key)** — o n8n se autentica enviando o header
+  `X-API-Key`; a chave vem de `n8n.api-key` (env `N8N_API_KEY`; vazia = acesso do n8n
+  desligado, falha fechada). Requisições com esse header caem numa `SecurityFilterChain`
+  própria (`@Order(1)`, stateless, sem CSRF) cuja allow-list é exatamente o que o n8n pode
+  fazer: `GET /agendamentos/disponiveis`, `GET /clientes/busca`, `POST /clientes`,
+  `POST /agendamentos` (origem AUTOMACAO, nasce PENDENTE, sujeito ao limite de 3),
+  `PUT /agendamentos/{id}/cancelar` e `PUT /agendamentos/{id}/reagendar`, mais os GET
+  públicos de serviços e barbeiros. Todo o resto é negado com 403 — em especial o n8n **não
+  confirma** agendamento (só o barbeiro) e **não lê** todos os agendamentos/clientes (há
+  PII, ex: `cpfCliente`). Para cancelar ou reagendar, o n8n guarda o `agendamentoId`
+  retornado na criação (no estado do workflow/conversa) — não existe, nem se planeja,
+  endpoint de listagem de agendamentos por cliente para o n8n (YAGNI).
+
+### Riscos conhecidos (não resolvidos, registrados de propósito)
+
+- `cancelar` não tem guarda de status: hoje permite cancelar um agendamento CONCLUIDO. Fica
+  mais relevante agora que o n8n pode chamá-lo.
+- Cancelar/reagendar pelo n8n não checa o dono do agendamento (opera só por
+  `agendamentoId`, sequencial) e `reagendar` devolve o agendamento para PENDENTE sem
+  reaplicar o limite de 3 pendentes. Trade-off aceito (o n8n guarda o id; sem endpoint de
+  listagem por cliente) — a reconsiderar, p. ex. exigindo `clienteId` nessas operações.
+- A constraint `unique` em `Cliente.numero` com `ddl-auto: update` **falha na subida** se o
+  banco já tiver números duplicados (ou com formatações diferentes que viram o mesmo número
+  ao normalizar). Checar/limpar os dados existentes antes do deploy; registros antigos
+  também continuam sem normalização até serem atualizados.
 
 ## 9. Domínio — regras esperadas, ainda NÃO implementadas no código
 
@@ -127,24 +186,6 @@ agendamento deve saber que existe essa lacuna entre "como é hoje" e "como dever
   — hoje só existe o horário fixo por dia da semana, sem conceito de exceção pontual.
 - **Status expandido**, incluindo "Não Compareceu" (no-show) — o enum atual não cobre
   esse caso (tem `REAGENDADO`, mas não tem algo equivalente a não-comparecimento).
-- **Confirmação de agendamento (PENDENTE → CONFIRMADO)** — bloqueante para o n8n. Hoje
-  não existe, em lugar nenhum do código, uma forma de transicionar um agendamento de
-  PENDENTE para CONFIRMADO (só existem cancelar e reagendar). Confirmado como lacuna a
-  fechar antes da integração com o n8n fazer sentido, já que "PENDENTE até o barbeiro
-  confirmar" não tem como o barbeiro de fato confirmar hoje.
-- **Origem do agendamento (MANUAL | AUTOMACAO)** — todo agendamento passa a registrar se
-  foi criado manualmente pelo barbeiro ou via automação (n8n). É a base da trava de
-  segurança do fluxo automático (ver seção 3).
-- **Limite de PENDENTES simultâneos por cliente via automação** — um cliente não pode
-  ter mais que **3** agendamentos PENDENTES criados por automação ao mesmo tempo; acima
-  disso, novas tentativas do n8n são bloqueadas até algum ser confirmado/cancelado. Esse
-  limite vale só para agendamentos com origem AUTOMACAO, não para os criados manualmente
-  pelo barbeiro.
-- **CPF e senha do Cliente deixam de ser obrigatórios** — hoje são `NOT NULL` em
-  `model/Cliente`, o que é incompatível com um cliente criado a partir de uma conversa de
-  WhatsApp (não faz sentido pedir CPF e senha só para marcar um corte). Confirmado que
-  isso vale para Cliente em geral (cadastro manual e via automação), não é uma exceção
-  isolada do fluxo do n8n.
 
 ## 10. Explicitamente fora de escopo agora (YAGNI)
 
@@ -157,9 +198,6 @@ agendamento deve saber que existe essa lacuna entre "como é hoje" e "como dever
 
 ## 11. Decisões em aberto (não resolver preventivamente)
 
-- **Como o n8n vai se autenticar na API** — mecanismo técnico ainda não escolhido (API
-  key, OAuth2 client credentials, etc.); o *comportamento de negócio* do que o n8n pode
-  fazer já está confirmado (seção 3 e 9), só falta o mecanismo em si.
 - Stack do futuro painel administrativo.
 - Modelagem exata de intervalos/indisponibilidade do barbeiro (seção 9) — regra
   confirmada como necessária, mas desenho ainda não definido.
