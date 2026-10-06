@@ -16,6 +16,5 @@ public class ServicoDesejadoDTO {
     private Long id;
     private String nome;
     private BigDecimal preco;
-
-    
+    private Integer duracaoMinutos;
 }

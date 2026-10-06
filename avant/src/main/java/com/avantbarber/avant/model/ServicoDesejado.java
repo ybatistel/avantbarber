@@ -24,4 +24,7 @@ public class ServicoDesejado {
 
     @Column(length = 80, nullable = false)
     private BigDecimal preco;
+
+    @Column(nullable = false, columnDefinition = "integer default 30")
+    private Integer duracaoMinutos;
 }
