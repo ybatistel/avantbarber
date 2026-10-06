@@ -17,8 +17,11 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
             LocalDateTime dataFim,
             StatusAgendamento statusAgendamento);
 
-    boolean existsByBarbeiroIdAndData(Long barbeiroId, LocalDateTime data);
-    boolean existsByClienteIdAndData(Long clienteId, LocalDateTime data);
-    boolean existsByData(LocalDateTime data);
+    List<Agendamento> findByClienteIdAndDataBetweenAndStatusNot(
+            Long clienteId,
+            LocalDateTime dataInicio,
+            LocalDateTime dataFim,
+            StatusAgendamento statusAgendamento);
+
     long countByClienteIdAndStatusAndOrigem(Long clienteId, StatusAgendamento status, OrigemAgendamento origem);
 }

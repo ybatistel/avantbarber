@@ -38,7 +38,7 @@ class ServicoDesejadoControllerTest {
     @Test
     void listarServicosDesejadosPublicoRetornaNomeEPreco() throws Exception {
         given(servicoDesejadoService.listarServicosDesejados())
-                .willReturn(List.of(new ServicoDesejadoDTO(1L, "Corte", new BigDecimal("50.00"))));
+                .willReturn(List.of(new ServicoDesejadoDTO(1L, "Corte", new BigDecimal("50.00"), 30)));
 
         mockMvc.perform(get("/servicos-desejados/publico"))
                 .andExpect(status().isOk())

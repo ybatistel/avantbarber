@@ -82,8 +82,14 @@ class AgendamentoServiceTest {
                 .build();
     }
 
+    private static final int DURACAO_PADRAO_MINUTOS = 30;
+
     private static ServicoDesejado servico(Long id) {
-        return new ServicoDesejado(id, "Corte", BigDecimal.valueOf(50));
+        return servico(id, DURACAO_PADRAO_MINUTOS);
+    }
+
+    private static ServicoDesejado servico(Long id, int duracaoMinutos) {
+        return new ServicoDesejado(id, "Corte", BigDecimal.valueOf(50), duracaoMinutos);
     }
 
     private static AgendamentoRequestDTO requestDTO(LocalDateTime data) {
@@ -91,9 +97,13 @@ class AgendamentoServiceTest {
     }
 
     private static Agendamento agendamentoExistente(Long id, LocalDateTime data, StatusAgendamento status) {
+        return agendamentoExistente(id, data, status, DURACAO_PADRAO_MINUTOS);
+    }
+
+    private static Agendamento agendamentoExistente(Long id, LocalDateTime data, StatusAgendamento status, int duracaoMinutos) {
         return Agendamento.builder()
                 .id(id).data(data).status(status)
-                .cliente(cliente(CLIENTE_ID)).barbeiro(barbeiro(BARBEIRO_ID)).servico(servico(SERVICO_ID))
+                .cliente(cliente(CLIENTE_ID)).barbeiro(barbeiro(BARBEIRO_ID)).servico(servico(SERVICO_ID, duracaoMinutos))
                 .build();
     }
 
@@ -107,14 +117,35 @@ class AgendamentoServiceTest {
         when(agendamentoRepository.save(any(Agendamento.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
+    private void mockarSemConflitos() {
+        when(agendamentoRepository.findByBarbeiroIdAndDataBetweenAndStatusNot(eq(BARBEIRO_ID), any(), any(), eq(StatusAgendamento.CANCELADO)))
+                .thenReturn(List.of());
+        when(agendamentoRepository.findByClienteIdAndDataBetweenAndStatusNot(eq(CLIENTE_ID), any(), any(), eq(StatusAgendamento.CANCELADO)))
+                .thenReturn(List.of());
+    }
+
+    private void mockarConflitoBarbeiro(LocalDateTime data) {
+        // Não stuba a checagem de cliente: validarDisponibilidadeBarbeiro roda antes e já
+        // lança exceção, então o repository de cliente nunca chega a ser consultado.
+        when(agendamentoRepository.findByBarbeiroIdAndDataBetweenAndStatusNot(eq(BARBEIRO_ID), any(), any(), eq(StatusAgendamento.CANCELADO)))
+                .thenReturn(List.of(agendamentoExistente(2L, data, StatusAgendamento.CONFIRMADO)));
+    }
+
+    private void mockarConflitoCliente(LocalDateTime data) {
+        // Não stuba a checagem de barbeiro: dependendo do método (salvar/reagendar) ela
+        // pode rodar antes ou depois, mas o Mockito já devolve lista vazia por padrão para
+        // um método não stubado — só a stub do lado que realmente gera o conflito importa.
+        when(agendamentoRepository.findByClienteIdAndDataBetweenAndStatusNot(eq(CLIENTE_ID), any(), any(), eq(StatusAgendamento.CANCELADO)))
+                .thenReturn(List.of(agendamentoExistente(2L, data, StatusAgendamento.CONFIRMADO)));
+    }
+
     // ---------- salvar ----------
 
     @Test
     void salvar_deveCriarAgendamentoComStatusPendente_quandoDadosValidos() {
         LocalDateTime data = proximaData(DayOfWeek.TUESDAY, LocalTime.of(10, 0));
         mockarEntidadesRelacionadas();
-        when(agendamentoRepository.existsByBarbeiroIdAndData(BARBEIRO_ID, data)).thenReturn(false);
-        when(agendamentoRepository.existsByClienteIdAndData(CLIENTE_ID, data)).thenReturn(false);
+        mockarSemConflitos();
         mockarSalvarComEcho();
 
         AgendamentoDTO resultado = agendamentoService.salvar(requestDTO(data));
@@ -156,7 +187,12 @@ class AgendamentoServiceTest {
                 Arguments.of(DayOfWeek.MONDAY, LocalTime.of(19, 1)),
                 Arguments.of(DayOfWeek.TUESDAY, LocalTime.of(9, 59)),
                 Arguments.of(DayOfWeek.TUESDAY, LocalTime.of(19, 1)),
-                Arguments.of(DayOfWeek.FRIDAY, LocalTime.of(19, 1))
+                Arguments.of(DayOfWeek.FRIDAY, LocalTime.of(19, 1)),
+                // Início dentro do expediente, mas a duração padrão de 30min do serviço
+                // ultrapassa o fechamento — rejeitado por validarTerminoDentroDoExpediente.
+                Arguments.of(DayOfWeek.SUNDAY, LocalTime.of(14, 0)),
+                Arguments.of(DayOfWeek.MONDAY, LocalTime.of(19, 0)),
+                Arguments.of(DayOfWeek.FRIDAY, LocalTime.of(19, 0))
         );
     }
 
@@ -165,8 +201,7 @@ class AgendamentoServiceTest {
     void salvar_devePermitir_quandoExatamenteNoLimiteDoExpediente(DayOfWeek dia, LocalTime hora) {
         mockarEntidadesRelacionadas();
         LocalDateTime data = proximaData(dia, hora);
-        when(agendamentoRepository.existsByBarbeiroIdAndData(BARBEIRO_ID, data)).thenReturn(false);
-        when(agendamentoRepository.existsByClienteIdAndData(CLIENTE_ID, data)).thenReturn(false);
+        mockarSemConflitos();
         mockarSalvarComEcho();
 
         AgendamentoDTO resultado = agendamentoService.salvar(requestDTO(data));
@@ -177,11 +212,8 @@ class AgendamentoServiceTest {
     static Stream<Arguments> horariosNoLimiteDoExpediente() {
         return Stream.of(
                 Arguments.of(DayOfWeek.SUNDAY, LocalTime.of(9, 0)),
-                Arguments.of(DayOfWeek.SUNDAY, LocalTime.of(14, 0)),
                 Arguments.of(DayOfWeek.MONDAY, LocalTime.of(13, 30)),
-                Arguments.of(DayOfWeek.MONDAY, LocalTime.of(19, 0)),
-                Arguments.of(DayOfWeek.TUESDAY, LocalTime.of(10, 0)),
-                Arguments.of(DayOfWeek.FRIDAY, LocalTime.of(19, 0))
+                Arguments.of(DayOfWeek.TUESDAY, LocalTime.of(10, 0))
         );
     }
 
@@ -189,7 +221,7 @@ class AgendamentoServiceTest {
     void salvar_deveLancarBusinessException_quandoBarbeiroJaTemAgendamentoNoHorario() {
         LocalDateTime data = proximaData(DayOfWeek.TUESDAY, LocalTime.of(10, 0));
         mockarEntidadesRelacionadas();
-        when(agendamentoRepository.existsByBarbeiroIdAndData(BARBEIRO_ID, data)).thenReturn(true);
+        mockarConflitoBarbeiro(data);
 
         assertThatThrownBy(() -> agendamentoService.salvar(requestDTO(data)))
                 .isInstanceOf(BusinessException.class);
@@ -201,13 +233,46 @@ class AgendamentoServiceTest {
     void salvar_deveLancarBusinessException_quandoClienteJaTemAgendamentoNoHorario() {
         LocalDateTime data = proximaData(DayOfWeek.TUESDAY, LocalTime.of(10, 0));
         mockarEntidadesRelacionadas();
-        when(agendamentoRepository.existsByBarbeiroIdAndData(BARBEIRO_ID, data)).thenReturn(false);
-        when(agendamentoRepository.existsByClienteIdAndData(CLIENTE_ID, data)).thenReturn(true);
+        mockarConflitoCliente(data);
 
         assertThatThrownBy(() -> agendamentoService.salvar(requestDTO(data)))
                 .isInstanceOf(BusinessException.class);
 
         verify(agendamentoRepository, never()).save(any());
+    }
+
+    @Test
+    void salvar_deveLancarBusinessException_quandoSobrepoeParcialmenteAgendamentoDeDuracaoMaior() {
+        // Barbeiro já tem um agendamento de 60min começando às 10h (10h-11h). Um novo
+        // serviço de 30min às 10h30 não coincide no timestamp de início, mas sobrepõe o
+        // intervalo ocupado — precisa ser bloqueado mesmo sem "mesmo horário exato".
+        LocalDateTime inicioExistente = proximaData(DayOfWeek.TUESDAY, LocalTime.of(10, 0));
+        LocalDateTime inicioNovo = proximaData(DayOfWeek.TUESDAY, LocalTime.of(10, 30));
+        mockarEntidadesRelacionadas();
+        when(agendamentoRepository.findByBarbeiroIdAndDataBetweenAndStatusNot(eq(BARBEIRO_ID), any(), any(), eq(StatusAgendamento.CANCELADO)))
+                .thenReturn(List.of(agendamentoExistente(2L, inicioExistente, StatusAgendamento.CONFIRMADO, 60)));
+
+        assertThatThrownBy(() -> agendamentoService.salvar(requestDTO(inicioNovo)))
+                .isInstanceOf(BusinessException.class);
+
+        verify(agendamentoRepository, never()).save(any());
+    }
+
+    @Test
+    void salvar_devePermitir_quandoNovoAgendamentoComecaExatamenteQuandoAnteriorTermina() {
+        // Barbeiro tem um agendamento de 30min terminando às 10h30. Um novo agendamento
+        // começando exatamente às 10h30 não sobrepõe (intervalos "encostam", não se
+        // cruzam) e deve ser permitido.
+        LocalDateTime inicioExistente = proximaData(DayOfWeek.TUESDAY, LocalTime.of(10, 0));
+        LocalDateTime inicioNovo = proximaData(DayOfWeek.TUESDAY, LocalTime.of(10, 30));
+        mockarEntidadesRelacionadas();
+        when(agendamentoRepository.findByBarbeiroIdAndDataBetweenAndStatusNot(eq(BARBEIRO_ID), any(), any(), eq(StatusAgendamento.CANCELADO)))
+                .thenReturn(List.of(agendamentoExistente(2L, inicioExistente, StatusAgendamento.CONFIRMADO, 30)));
+        mockarSalvarComEcho();
+
+        AgendamentoDTO resultado = agendamentoService.salvar(requestDTO(inicioNovo));
+
+        assertThat(resultado.getStatus()).isEqualTo(StatusAgendamento.PENDENTE);
     }
 
     // ---------- cancelar ----------
@@ -240,8 +305,7 @@ class AgendamentoServiceTest {
         LocalDateTime novaData = proximaData(DayOfWeek.WEDNESDAY, LocalTime.of(11, 0));
         Agendamento existente = agendamentoExistente(1L, dataAntiga, StatusAgendamento.CONFIRMADO);
         when(agendamentoRepository.findById(1L)).thenReturn(Optional.of(existente));
-        when(agendamentoRepository.existsByClienteIdAndData(CLIENTE_ID, novaData)).thenReturn(false);
-        when(agendamentoRepository.existsByBarbeiroIdAndData(BARBEIRO_ID, novaData)).thenReturn(false);
+        mockarSemConflitos();
         mockarSalvarComEcho();
 
         AgendamentoDTO resultado = agendamentoService.reagendar(1L, novaData);
@@ -287,7 +351,7 @@ class AgendamentoServiceTest {
         LocalDateTime novaData = proximaData(DayOfWeek.WEDNESDAY, LocalTime.of(11, 0));
         Agendamento existente = agendamentoExistente(1L, dataAntiga, StatusAgendamento.CONFIRMADO);
         when(agendamentoRepository.findById(1L)).thenReturn(Optional.of(existente));
-        when(agendamentoRepository.existsByClienteIdAndData(CLIENTE_ID, novaData)).thenReturn(true);
+        mockarConflitoCliente(novaData);
 
         assertThatThrownBy(() -> agendamentoService.reagendar(1L, novaData))
                 .isInstanceOf(BusinessException.class);
@@ -299,8 +363,7 @@ class AgendamentoServiceTest {
         LocalDateTime novaData = proximaData(DayOfWeek.WEDNESDAY, LocalTime.of(11, 0));
         Agendamento existente = agendamentoExistente(1L, dataAntiga, StatusAgendamento.CONFIRMADO);
         when(agendamentoRepository.findById(1L)).thenReturn(Optional.of(existente));
-        when(agendamentoRepository.existsByClienteIdAndData(CLIENTE_ID, novaData)).thenReturn(false);
-        when(agendamentoRepository.existsByBarbeiroIdAndData(BARBEIRO_ID, novaData)).thenReturn(true);
+        mockarConflitoBarbeiro(novaData);
 
         assertThatThrownBy(() -> agendamentoService.reagendar(1L, novaData))
                 .isInstanceOf(BusinessException.class);
@@ -313,16 +376,18 @@ class AgendamentoServiceTest {
         when(barbeiroRepository.existsById(BARBEIRO_ID)).thenReturn(false);
         LocalDate data = LocalDate.now().plusYears(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.TUESDAY));
 
-        assertThatThrownBy(() -> agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, data))
+        assertThatThrownBy(() -> agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, data, SERVICO_ID))
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
 
     @Test
     void listarHorariosDisponiveis_deveRetornarListaVazia_quandoSabado() {
+        // Não stuba servicoDesejadoRepository: sábado retorna lista vazia antes de
+        // precisar buscar o serviço (evita uma query desnecessária num dia sempre fechado).
         when(barbeiroRepository.existsById(BARBEIRO_ID)).thenReturn(true);
         LocalDate sabado = LocalDate.now().plusYears(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
 
-        List<LocalTime> resultado = agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, sabado);
+        List<LocalTime> resultado = agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, sabado, SERVICO_ID);
 
         assertThat(resultado).isEmpty();
     }
@@ -330,12 +395,13 @@ class AgendamentoServiceTest {
     @Test
     void listarHorariosDisponiveis_deveUsarJanelaCorreta_quandoDomingo() {
         when(barbeiroRepository.existsById(BARBEIRO_ID)).thenReturn(true);
+        when(servicoDesejadoRepository.findById(SERVICO_ID)).thenReturn(Optional.of(servico(SERVICO_ID)));
         LocalDate domingo = LocalDate.now().plusYears(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
         when(agendamentoRepository.findByBarbeiroIdAndDataBetweenAndStatusNot(
                 eq(BARBEIRO_ID), any(), any(), eq(StatusAgendamento.CANCELADO)))
                 .thenReturn(List.of());
 
-        List<LocalTime> resultado = agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, domingo);
+        List<LocalTime> resultado = agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, domingo, SERVICO_ID);
 
         assertThat(resultado).containsExactly(
                 LocalTime.of(9, 0), LocalTime.of(9, 30), LocalTime.of(10, 0), LocalTime.of(10, 30),
@@ -347,12 +413,13 @@ class AgendamentoServiceTest {
     @Test
     void listarHorariosDisponiveis_deveUsarJanelaCorreta_quandoSegunda() {
         when(barbeiroRepository.existsById(BARBEIRO_ID)).thenReturn(true);
+        when(servicoDesejadoRepository.findById(SERVICO_ID)).thenReturn(Optional.of(servico(SERVICO_ID)));
         LocalDate segunda = LocalDate.now().plusYears(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
         when(agendamentoRepository.findByBarbeiroIdAndDataBetweenAndStatusNot(
                 eq(BARBEIRO_ID), any(), any(), eq(StatusAgendamento.CANCELADO)))
                 .thenReturn(List.of());
 
-        List<LocalTime> resultado = agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, segunda);
+        List<LocalTime> resultado = agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, segunda, SERVICO_ID);
 
         assertThat(resultado).first().isEqualTo(LocalTime.of(13, 30));
         assertThat(resultado).last().isEqualTo(LocalTime.of(18, 30));
@@ -362,12 +429,13 @@ class AgendamentoServiceTest {
     @Test
     void listarHorariosDisponiveis_deveUsarJanelaCorreta_quandoTercaASexta() {
         when(barbeiroRepository.existsById(BARBEIRO_ID)).thenReturn(true);
+        when(servicoDesejadoRepository.findById(SERVICO_ID)).thenReturn(Optional.of(servico(SERVICO_ID)));
         LocalDate terca = LocalDate.now().plusYears(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.TUESDAY));
         when(agendamentoRepository.findByBarbeiroIdAndDataBetweenAndStatusNot(
                 eq(BARBEIRO_ID), any(), any(), eq(StatusAgendamento.CANCELADO)))
                 .thenReturn(List.of());
 
-        List<LocalTime> resultado = agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, terca);
+        List<LocalTime> resultado = agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, terca, SERVICO_ID);
 
         assertThat(resultado).first().isEqualTo(LocalTime.of(10, 0));
         assertThat(resultado).last().isEqualTo(LocalTime.of(18, 30));
@@ -377,31 +445,50 @@ class AgendamentoServiceTest {
     @Test
     void listarHorariosDisponiveis_deveExcluirSlotOcupado() {
         when(barbeiroRepository.existsById(BARBEIRO_ID)).thenReturn(true);
+        when(servicoDesejadoRepository.findById(SERVICO_ID)).thenReturn(Optional.of(servico(SERVICO_ID)));
         LocalDate terca = LocalDate.now().plusYears(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.TUESDAY));
         Agendamento ocupando10h = agendamentoExistente(2L, terca.atTime(10, 0), StatusAgendamento.CONFIRMADO);
         when(agendamentoRepository.findByBarbeiroIdAndDataBetweenAndStatusNot(
                 eq(BARBEIRO_ID), any(), any(), eq(StatusAgendamento.CANCELADO)))
                 .thenReturn(List.of(ocupando10h));
 
-        List<LocalTime> resultado = agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, terca);
+        List<LocalTime> resultado = agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, terca, SERVICO_ID);
 
         assertThat(resultado).doesNotContain(LocalTime.of(10, 0));
         assertThat(resultado).contains(LocalTime.of(10, 30));
     }
 
     @Test
-    void listarHorariosDisponiveis_deveConsultarApenasAgendamentosNaoCancelados() {
-        // A exclusão de agendamentos CANCELADO acontece na query derivada do repositório
-        // (existsByBarbeiroIdAndDataBetweenAndStatusNot), não em código do service — aqui
-        // confirmamos apenas que o service pede a exclusão certa; o filtro em si é
-        // responsabilidade do Spring Data / banco (fora do escopo de um teste de unidade).
+    void listarHorariosDisponiveis_deveExcluirDoisSlotsOcupados_quandoServicoTemDuracaoMaiorQueUmSlot() {
         when(barbeiroRepository.existsById(BARBEIRO_ID)).thenReturn(true);
+        when(servicoDesejadoRepository.findById(SERVICO_ID)).thenReturn(Optional.of(servico(SERVICO_ID, 60)));
         LocalDate terca = LocalDate.now().plusYears(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.TUESDAY));
         when(agendamentoRepository.findByBarbeiroIdAndDataBetweenAndStatusNot(
                 eq(BARBEIRO_ID), any(), any(), eq(StatusAgendamento.CANCELADO)))
                 .thenReturn(List.of());
 
-        agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, terca);
+        List<LocalTime> resultado = agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, terca, SERVICO_ID);
+
+        // Serviço de 60min iniciado às 18h30 terminaria às 19h30, depois do fechamento (19h) —
+        // não deve ser oferecido, mesmo sem nenhum agendamento ocupando o horário.
+        assertThat(resultado).doesNotContain(LocalTime.of(18, 30));
+        assertThat(resultado).last().isEqualTo(LocalTime.of(18, 0));
+    }
+
+    @Test
+    void listarHorariosDisponiveis_deveConsultarApenasAgendamentosNaoCancelados() {
+        // A exclusão de agendamentos CANCELADO acontece na query derivada do repositório
+        // (findByBarbeiroIdAndDataBetweenAndStatusNot), não em código do service — aqui
+        // confirmamos apenas que o service pede a exclusão certa; o filtro em si é
+        // responsabilidade do Spring Data / banco (fora do escopo de um teste de unidade).
+        when(barbeiroRepository.existsById(BARBEIRO_ID)).thenReturn(true);
+        when(servicoDesejadoRepository.findById(SERVICO_ID)).thenReturn(Optional.of(servico(SERVICO_ID)));
+        LocalDate terca = LocalDate.now().plusYears(1).with(TemporalAdjusters.nextOrSame(DayOfWeek.TUESDAY));
+        when(agendamentoRepository.findByBarbeiroIdAndDataBetweenAndStatusNot(
+                eq(BARBEIRO_ID), any(), any(), eq(StatusAgendamento.CANCELADO)))
+                .thenReturn(List.of());
+
+        agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, terca, SERVICO_ID);
 
         verify(agendamentoRepository).findByBarbeiroIdAndDataBetweenAndStatusNot(
                 eq(BARBEIRO_ID), any(), any(), eq(StatusAgendamento.CANCELADO));
@@ -430,11 +517,12 @@ class AgendamentoServiceTest {
                 "Teste só é válido dentro do expediente de hoje, com ao menos um slot já passado");
 
         when(barbeiroRepository.existsById(BARBEIRO_ID)).thenReturn(true);
+        when(servicoDesejadoRepository.findById(SERVICO_ID)).thenReturn(Optional.of(servico(SERVICO_ID)));
         when(agendamentoRepository.findByBarbeiroIdAndDataBetweenAndStatusNot(
                 eq(BARBEIRO_ID), any(), any(), eq(StatusAgendamento.CANCELADO)))
                 .thenReturn(List.of());
 
-        List<LocalTime> resultado = agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, hoje);
+        List<LocalTime> resultado = agendamentoService.listarHorariosDisponiveis(BARBEIRO_ID, hoje, SERVICO_ID);
 
         assertThat(resultado).doesNotContain(inicioDia);
         assertThat(resultado).allMatch(horario -> !horario.isBefore(agora));

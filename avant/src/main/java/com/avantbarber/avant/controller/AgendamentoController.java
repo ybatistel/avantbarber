@@ -31,8 +31,8 @@ public class AgendamentoController {
     }
 
     @GetMapping("/disponiveis")
-    public ResponseEntity<List<LocalTime>> listarHorariosDisponiveis(@RequestParam Long barbeiroId, @RequestParam LocalDate data) {
-        return ResponseEntity.ok(agendamentoService.listarHorariosDisponiveis(barbeiroId, data));
+    public ResponseEntity<List<LocalTime>> listarHorariosDisponiveis(@RequestParam Long barbeiroId, @RequestParam LocalDate data, @RequestParam Long servicoId) {
+        return ResponseEntity.ok(agendamentoService.listarHorariosDisponiveis(barbeiroId, data, servicoId));
     }
 
     @PostMapping

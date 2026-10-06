@@ -99,9 +99,21 @@ autenticação de API key "para o n8n" antes de a integração existir).
 - Horário de funcionamento por dia da semana, hoje fixo no código
   (`AgendamentoService`): fechado aos sábados, domingo 9h–14h, segunda 13h30–19h, terça
   a sexta 10h–19h.
-- Sem double-booking: um barbeiro ou cliente não pode ter dois agendamentos no mesmo
-  timestamp exato.
-- Slots de disponibilidade calculados em intervalos fixos de 30 minutos.
+- Sem double-booking: um barbeiro ou cliente não pode ter dois agendamentos com
+  intervalos `[início, início+duração)` sobrepostos (ver duração de serviço abaixo).
+- Slots de disponibilidade calculados em intervalos de 30 minutos.
+- **Duração variável por serviço** (`ServicoDesejado.duracaoMinutos`, em minutos, sempre
+  múltiplo de 30 — validado em `ServicoDesejadoService`; serviços cadastrados antes dessa
+  regra assumem default de 30min via `columnDefinition` na coluna, já que o schema é
+  `ddl-auto: update` sem migrations). A disponibilidade (`listarHorariosDisponiveis`,
+  que agora recebe `servicoId` além de `barbeiroId`/`data`) só oferece um horário de
+  início se o serviço completo (início + duração) couber dentro do expediente do dia e
+  não sobrepuser nenhum agendamento já ocupado — cada agendamento ocupado bloqueia pela
+  duração do SEU PRÓPRIO serviço, não a do serviço sendo consultado. `salvar`/`reagendar`
+  aplicam a mesma regra de sobreposição de intervalo, independente do que
+  `listarHorariosDisponiveis` ofereceu (API é fonte única de verdade — relevante para
+  quando o n8n passar a criar agendamentos direto). Mudança de contrato: o endpoint
+  `GET /agendamentos/disponiveis` agora exige `servicoId` como parâmetro obrigatório.
 
 ## 9. Domínio — regras esperadas, ainda NÃO implementadas no código
 
@@ -111,9 +123,6 @@ agendamento deve saber que existe essa lacuna entre "como é hoje" e "como dever
 
 - **Múltiplos serviços por agendamento** (ex: corte + barba no mesmo agendamento) — hoje
   é 1:1 com `ServicoDesejado`.
-- **Duração variável por serviço** — hoje os slots são fixos de 30min; um agendamento
-  com serviços mais longos deve ocupar mais de um slot, e a disponibilidade deve
-  considerar a duração total, não só o horário de início.
 - **Intervalos/indisponibilidades do barbeiro** (almoço, férias, folga, bloqueio manual)
   — hoje só existe o horário fixo por dia da semana, sem conceito de exceção pontual.
 - **Status expandido**, incluindo "Não Compareceu" (no-show) — o enum atual não cobre
